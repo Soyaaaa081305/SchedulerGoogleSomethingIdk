@@ -3,8 +3,6 @@
 import { useEffect, useState } from "react";
 import { Modal, Button } from "@/components/ui";
 
-const ONBOARDING_KEY = "scheduler-onboarding-seen-v1";
-
 const STEPS = [
   {
     icon: "🗓️",
@@ -33,19 +31,16 @@ const STEPS = [
   },
 ];
 
-export function useOnboarding() {
+export function useOnboarding(show: boolean) {
   const [open, setOpen] = useState(false);
 
   useEffect(() => {
-    if (localStorage.getItem(ONBOARDING_KEY) === "1") return;
+    if (!show) return;
     const t = setTimeout(() => setOpen(true), 700);
     return () => clearTimeout(t);
-  }, []);
+  }, [show]);
 
-  const close = () => {
-    localStorage.setItem(ONBOARDING_KEY, "1");
-    setOpen(false);
-  };
+  const close = () => setOpen(false);
 
   return { open, close };
 }
@@ -71,7 +66,7 @@ export default function OnboardingModal({
 
   return (
     <Modal open={open} onClose={onClose}>
-      <div className="p-6 sm:p-8">
+      <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain p-6 sm:p-8">
         <div className="flex items-start justify-between">
           <span className="text-4xl">{current.icon}</span>
           <button

@@ -184,9 +184,9 @@ export function Modal({
       <div
         role="dialog"
         aria-modal="true"
-        className={`relative w-full ${
+        className={`relative flex w-full ${
           size === "lg" ? "max-w-2xl" : "max-w-lg"
-        } max-h-[92vh] overflow-y-auto rounded-2xl bg-white shadow-2xl toast-in`}
+        } max-h-[92vh] flex-col overflow-hidden rounded-2xl bg-white shadow-2xl toast-in`}
       >
         {children}
       </div>

@@ -145,21 +145,24 @@ export default function UploadWizard({
 
   return (
     <Modal open onClose={syncing ? () => {} : onClose} size="lg">
-      <div className="p-6 sm:p-8">
-        <div className="flex items-center gap-1.5">
-          {STEPS.map((label, i) => (
-            <span
-              key={label}
-              className={`h-1.5 flex-1 rounded-full transition-colors ${
-                i <= step ? "bg-[#c8102e]" : "bg-zinc-200"
-              }`}
-            />
-          ))}
+      <div className="flex max-h-[92vh] flex-col">
+        <div className="shrink-0 p-6 pb-0 sm:p-8 sm:pb-0">
+          <div className="flex items-center gap-1.5">
+            {STEPS.map((label, i) => (
+              <span
+                key={label}
+                className={`h-1.5 flex-1 rounded-full transition-colors ${
+                  i <= step ? "bg-[#c8102e]" : "bg-zinc-200"
+                }`}
+              />
+            ))}
+          </div>
+          <p className="mt-3 text-xs font-semibold uppercase tracking-wide text-zinc-400">
+            Step {step + 1} of {STEPS.length} — {STEPS[step]}
+          </p>
         </div>
-        <p className="mt-3 text-xs font-semibold uppercase tracking-wide text-zinc-400">
-          Step {step + 1} of {STEPS.length} — {STEPS[step]}
-        </p>
 
+        <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain p-6 sm:p-8">
         {step === 0 && (
           <div className="mt-4">
             <h2 className="text-xl font-black text-zinc-900">Review your classes</h2>
@@ -168,7 +171,7 @@ export default function UploadWizard({
               any row to edit the details, and untick anything you don&apos;t
               want synced.
             </p>
-            <div className="mt-4 max-h-72 space-y-3 overflow-y-auto pr-1">
+            <div className="mt-4 space-y-3">
               {rowsState.map((row) => (
                 <CourseRowEditor
                   key={row.id}
@@ -326,33 +329,36 @@ export default function UploadWizard({
             <Spinner label="Syncing to Google Calendar…" />
           </div>
         )}
+        </div>
 
-        <div className="mt-6 flex items-center justify-between">
-          <Button variant="ghost" onClick={() => setStep((s) => Math.max(0, s - 1))} disabled={step === 0 || syncing}>
-            Back
-          </Button>
-          <div className="flex items-center gap-2">
-            {step < 3 && (
-              <Button variant="ghost" onClick={onClose} disabled={syncing}>
-                Skip
-              </Button>
-            )}
-            <Button
-              onClick={() => {
-                if (step === STEPS.length - 1) {
-                  void sync();
-                } else {
-                  setStep((s) => s + 1);
-                }
-              }}
-              disabled={syncing || (step === 0 && selected.length === 0)}
-            >
-              {step === STEPS.length - 1
-                ? syncing
-                  ? "Syncing…"
-                  : `Sync ${selected.length} to Google Calendar`
-                : "Next"}
+        <div className="shrink-0 border-t border-zinc-100 p-4 sm:p-5">
+          <div className="flex items-center justify-between">
+            <Button variant="ghost" onClick={() => setStep((s) => Math.max(0, s - 1))} disabled={step === 0 || syncing}>
+              Back
             </Button>
+            <div className="flex items-center gap-2">
+              {step < 3 && (
+                <Button variant="ghost" onClick={onClose} disabled={syncing}>
+                  Skip
+                </Button>
+              )}
+              <Button
+                onClick={() => {
+                  if (step === STEPS.length - 1) {
+                    void sync();
+                  } else {
+                    setStep((s) => s + 1);
+                  }
+                }}
+                disabled={syncing || (step === 0 && selected.length === 0)}
+              >
+                {step === STEPS.length - 1
+                  ? syncing
+                    ? "Syncing…"
+                    : `Sync ${selected.length} to Google Calendar`
+                  : "Next"}
+              </Button>
+            </div>
           </div>
         </div>
       </div>

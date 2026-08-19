@@ -33,7 +33,7 @@ export default function Dashboard({ user, initial }: { user: UserInfo; initial: 
   const [settings, setSettings] = useState<SettingsDTO | null>(initial.settings);
   const [connected, setConnected] = useState(initial.connected);
   const [needsReconnect, setNeedsReconnect] = useState(initial.needsReconnect);
-  const onboarding = useOnboarding();
+  const onboarding = useOnboarding(initial.schedules.length === 0);
 
   useEffect(() => {
     navigator.serviceWorker?.register("/sw.js").catch(() => {});
@@ -58,9 +58,15 @@ export default function Dashboard({ user, initial }: { user: UserInfo; initial: 
       <ConnectBanner connected={connected} needsReconnect={needsReconnect} />
 
       <main className="mx-auto w-full max-w-5xl flex-1 space-y-6 px-4 py-6 pb-16">
-        <section className="relative overflow-hidden rounded-3xl bg-gradient-to-br from-[#c8102e] via-[#b00e29] to-[#8a0a1e] p-6 text-white shadow-lg shadow-[#c8102e]/20 sm:p-8">
+        <section
+          className="relative overflow-hidden rounded-3xl p-6 text-white shadow-lg sm:p-8"
+          style={{
+            background: "linear-gradient(135deg, #c8102e 0%, #a50d26 55%, #8a0a1e 100%)",
+          }}
+        >
           <div
-            className="pointer-events-none absolute -right-10 -top-16 h-48 w-48 rounded-full bg-white/10 blur-2xl"
+            className="pointer-events-none absolute -right-10 -top-16 h-48 w-48 rounded-full opacity-20"
+            style={{ background: "radial-gradient(circle, #ffffff 0%, transparent 70%)" }}
             aria-hidden="true"
           />
           <p className="text-sm font-medium text-[#f5c6cd]">
