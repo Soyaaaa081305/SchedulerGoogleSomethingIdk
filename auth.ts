@@ -7,10 +7,13 @@ import { prisma } from "@/lib/prisma";
 const adapter = PrismaAdapter(prisma);
 
 adapter.createUser = async (data) => {
+  if (!data.email) {
+    throw new Error("Email is required to create an account");
+  }
   const user = await prisma.user.upsert({
-    where: { email: data.email ?? "" },
-    create: data as never,
-    update: data as never,
+    where: { email: data.email },
+    create: { email: data.email, name: data.name, image: data.image } as never,
+    update: { name: data.name, image: data.image } as never,
   });
   return user as unknown as AdapterUser;
 };
@@ -35,7 +38,6 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
     Google({
       clientId: process.env.GOOGLE_CLIENT_ID ?? "",
       clientSecret: process.env.GOOGLE_CLIENT_SECRET ?? "",
-      allowDangerousEmailAccountLinking: true,
       authorization: {
         params: {
           scope: "openid email profile https://www.googleapis.com/auth/calendar.events",
@@ -50,16 +52,6 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
         session.user.id = token.sub;
       }
       return session;
-    },
-  },
-  events: {
-    async signOut(event) {
-      const token = (event as { token?: { sub?: string } }).token;
-      if (token?.sub) {
-        await prisma.account
-          .deleteMany({ where: { userId: token.sub } })
-          .catch(() => {});
-      }
     },
   },
 });

@@ -11,7 +11,13 @@ export interface ParsedCourse {
 
 const MODEL = "gemini-3.6-flash";
 
-const genAI = () => new GoogleGenerativeAI(process.env.GEMINI_API_KEY ?? "");
+const genAI = (() => {
+  let instance: GoogleGenerativeAI | null = null;
+  return () => {
+    if (!instance) instance = new GoogleGenerativeAI(process.env.GEMINI_API_KEY ?? "");
+    return instance;
+  };
+})();
 
 function scheduleModel() {
   return genAI().getGenerativeModel({
@@ -39,11 +45,18 @@ Rules:
 
 async function generateJson<T>(parts: (string | Part)[]): Promise<T> {
   const key = process.env.GEMINI_API_KEY;
-  if (!key) throw new Error("GEMINI_API_KEY is not set");
+  if (!key) {
+    console.error("[gemini] GEMINI_API_KEY is not set");
+    throw new Error("AI service is not configured. Please contact the administrator.");
+  }
   const model = scheduleModel();
   const result = await model.generateContent(parts);
   const text = result.response.text();
-  return JSON.parse(text) as T;
+  try {
+    return JSON.parse(text) as T;
+  } catch {
+    throw new Error("The AI returned an unreadable response. Try a clearer photo of your timetable.");
+  }
 }
 
 export async function extractScheduleFromImage(mimeType: string, base64Data: string): Promise<ParsedCourse[]> {

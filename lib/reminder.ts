@@ -41,9 +41,9 @@ export async function buildReminderMessage(userId: string, timezone: string): Pr
 }
 
 export async function getOrCreateSettings(userId: string) {
-  const existing = await prisma.settings.findUnique({ where: { userId } });
-  if (existing) return existing;
-  return prisma.settings.create({
-    data: { userId },
+  return prisma.settings.upsert({
+    where: { userId },
+    create: { userId },
+    update: {},
   });
 }

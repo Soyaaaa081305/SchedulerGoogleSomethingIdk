@@ -107,31 +107,31 @@ export default function ScheduleTable({
                 className="rounded-lg border border-zinc-300 bg-white px-2 py-1.5 text-sm text-zinc-900"
               />
               <div className="flex flex-wrap items-center gap-3 text-sm">
-                <label className="flex items-center gap-1.5 text-zinc-600">
+                <label className="flex min-w-0 items-center gap-1.5 text-zinc-600">
                   Start
                   <input
                     type="time"
                     value={draft.startTime}
                     onChange={(e) => setDraft({ ...draft, startTime: e.target.value })}
-                    className="rounded-lg border border-zinc-300 bg-white px-2 py-1.5 text-sm text-zinc-900"
+                    className="min-w-0 rounded-lg border border-zinc-300 bg-white px-2 py-1.5 text-sm text-zinc-900"
                   />
                 </label>
-                <label className="flex items-center gap-1.5 text-zinc-600">
+                <label className="flex min-w-0 items-center gap-1.5 text-zinc-600">
                   End
                   <input
                     type="time"
                     value={draft.endTime}
                     onChange={(e) => setDraft({ ...draft, endTime: e.target.value })}
-                    className="rounded-lg border border-zinc-300 bg-white px-2 py-1.5 text-sm text-zinc-900"
+                    className="min-w-0 rounded-lg border border-zinc-300 bg-white px-2 py-1.5 text-sm text-zinc-900"
                   />
                 </label>
-                <label className="flex items-center gap-1.5 text-zinc-600">
+                <label className="flex min-w-0 items-center gap-1.5 text-zinc-600">
                   Room
                   <input
                     type="text"
                     value={draft.room ?? ""}
                     onChange={(e) => setDraft({ ...draft, room: e.target.value || null })}
-                    className="rounded-lg border border-zinc-300 bg-white px-2 py-1.5 text-sm text-zinc-900"
+                    className="min-w-0 rounded-lg border border-zinc-300 bg-white px-2 py-1.5 text-sm text-zinc-900"
                   />
                 </label>
               </div>
@@ -175,10 +175,10 @@ export default function ScheduleTable({
                 >
                   {s.synced ? "✓ synced" : "unsynced"}
                 </span>
-                <Button variant="secondary" onClick={() => startEdit(s)}>
+                <Button variant="secondary" onClick={() => startEdit(s)} aria-label={`Edit ${s.courseName}`}>
                   Edit
                 </Button>
-                <Button variant="danger" onClick={() => setDeleting(s)}>
+                <Button variant="danger" onClick={() => setDeleting(s)} aria-label={`Delete ${s.courseName}`}>
                   Delete
                 </Button>
               </div>

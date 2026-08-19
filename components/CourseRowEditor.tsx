@@ -32,6 +32,7 @@ export function CourseRowEditor({
           onChange={(e) => onChange({ ...row, courseName: e.target.value })}
           className="flex-1 rounded-lg border border-zinc-300 bg-white px-2 py-1.5 text-sm text-zinc-900"
           placeholder="Course name"
+          aria-label={`Course name for row starting at ${row.startTime}`}
         />
       </div>
 

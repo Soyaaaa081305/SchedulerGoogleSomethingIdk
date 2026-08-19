@@ -1,0 +1,27 @@
+{
+  "name": "Scheduler — Mapúa MCL",
+  "short_name": "Scheduler",
+  "description": "Upload your class schedule, let AI read it, and sync it into Google Calendar with a nightly reminder so you never miss a class.",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#fafafa",
+  "theme_color": "#c8102e",
+  "icons": [
+    {
+      "src": "/icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png"
+    },
+    {
+      "src": "/icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png"
+    },
+    {
+      "src": "/icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "maskable"
+    }
+  ]
+}

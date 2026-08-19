@@ -32,7 +32,7 @@ export function toScheduleDTO(
   return {
     id: s.id,
     courseName: s.courseName,
-    daysOfWeek: s.daysOfWeek ? s.daysOfWeek.split(",") : [],
+    daysOfWeek: s.daysOfWeek ? s.daysOfWeek.split(",").filter(Boolean) : [],
     startTime: s.startTime,
     endTime: s.endTime,
     room: s.room,

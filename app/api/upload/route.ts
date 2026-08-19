@@ -1,12 +1,17 @@
 import { NextResponse } from "next/server";
 import { extractScheduleFromImage } from "@/lib/gemini";
 import { requireUser, handleError, ApiError } from "@/lib/api";
+import { rateLimit } from "@/lib/rateLimit";
 
-const MAX_BYTES = 12 * 1024 * 1024;
+const MAX_BYTES = 5 * 1024 * 1024;
 
 export async function POST(req: Request) {
   try {
-    await requireUser();
+    const userId = await requireUser();
+
+    if (!rateLimit(`upload:${userId}`, { maxRequests: 5, windowMs: 60_000 })) {
+      throw new ApiError(429, "Too many uploads. Please wait a minute and try again.");
+    }
 
     const form = await req.formData();
     const file = form.get("image");
@@ -17,7 +22,7 @@ export async function POST(req: Request) {
       throw new ApiError(400, "Uploaded file must be an image");
     }
     if (file.size > MAX_BYTES) {
-      throw new ApiError(400, "Image is too large (max 12 MB)");
+      throw new ApiError(400, "Image is too large (max 5 MB)");
     }
 
     const buffer = Buffer.from(await file.arrayBuffer());

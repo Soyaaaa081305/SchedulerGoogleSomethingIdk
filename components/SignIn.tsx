@@ -18,14 +18,17 @@ export default function SignIn() {
   const [guestEmail, setGuestEmail] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [sent, setSent] = useState<{ email: string } | null>(null);
+  const [signingIn, setSigningIn] = useState(false);
+  const [requesting, setRequesting] = useState(false);
 
-  const requestGuestAccess = () => {
+  const requestGuestAccess = async () => {
     const email = guestEmail.trim().toLowerCase();
     if (!EMAIL_RE.test(email)) {
       setError("Enter a valid email — e.g. name@mcl.edu.ph.");
       return;
     }
     setError(null);
+    setRequesting(true);
 
     const subject = encodeURIComponent(`Scheduler access request — ${email}`);
     const body = encodeURIComponent(
@@ -50,6 +53,7 @@ export default function SignIn() {
       // private mode — ignore
     }
     setSent({ email });
+    setRequesting(false);
   };
 
   return (
@@ -81,19 +85,29 @@ export default function SignIn() {
             Calendar. Never miss a class again.
           </p>
 
-          <button
-            type="button"
-            onClick={() => signIn("google", { callbackUrl: "/" })}
-            className="mt-4 flex w-full items-center justify-center gap-2 rounded-lg bg-[#c8102e] px-4 py-2.5 text-sm font-semibold text-white transition-colors hover:bg-[#a50d26]"
-          >
-            <svg className="h-4 w-4" viewBox="0 0 24 24" aria-hidden="true">
-              <path
-                fill="currentColor"
-                d="M12.48 10.92v3.28h7.84c-.24 1.84-.853 3.187-1.787 4.133-1.147 1.147-2.933 2.4-6.053 2.4-4.827 0-8.6-3.893-8.6-8.667 0-4.773 3.773-8.666 8.6-8.666 2.64 0 4.52 1.013 5.907 2.36l2.28-2.28C18.24 1.007 15.6 0 12.48 0 5.533 0 .16 5.36.16 12c0 6.64 5.373 12 12.32 12 5.747 0 10.12-3.987 10.12-9.667 0-.747-.093-1.427-.213-1.853H12.48z"
-              />
-            </svg>
-            Sign in with Google
-          </button>
+<button
+              type="button"
+              onClick={() => {
+                setSigningIn(true);
+                signIn("google", { callbackUrl: "/" });
+              }}
+              disabled={signingIn}
+              className="mt-4 flex w-full items-center justify-center gap-2 rounded-lg bg-[#c8102e] px-4 py-2.5 text-sm font-semibold text-white transition-colors hover:bg-[#a50d26] disabled:opacity-50"
+            >
+              {signingIn ? (
+                "Redirecting…"
+              ) : (
+                <>
+                  <svg className="h-4 w-4" viewBox="0 0 24 24" aria-hidden="true">
+                    <path
+                      fill="currentColor"
+                      d="M12.48 10.92v3.28h7.84c-.24 1.84-.853 3.187-1.787 4.133-1.147 1.147-2.933 2.4-6.053 2.4-4.827 0-8.6-3.893-8.6-8.667 0-4.773 3.773-8.666 8.6-8.666 2.64 0 4.52 1.013 5.907 2.36l2.28-2.28C18.24 1.007 15.6 0 12.48 0 5.533 0 .16 5.36.16 12c0 6.64 5.373 12 12.32 12 5.747 0 10.12-3.987 10.12-9.667 0-.747-.093-1.427-.213-1.853H12.48z"
+                    />
+                  </svg>
+                  Sign in with Google
+                </>
+              )}
+            </button>
 
           <div className="my-4 flex items-center gap-3">
             <span className="h-px flex-1 bg-zinc-200" />
@@ -119,10 +133,11 @@ export default function SignIn() {
             </div>
           ) : (
             <>
-              <p className="text-xs font-semibold uppercase tracking-wide text-zinc-400">
-                New here?
-              </p>
+              <label htmlFor="guest-email" className="text-xs font-semibold uppercase tracking-wide text-zinc-400">
+                Your email
+              </label>
               <input
+                id="guest-email"
                 type="email"
                 inputMode="email"
                 autoComplete="email"
@@ -139,10 +154,11 @@ export default function SignIn() {
               )}
               <button
                 type="button"
-                onClick={requestGuestAccess}
-                className="mt-2 w-full rounded-lg border border-zinc-300 bg-white px-4 py-2.5 text-sm font-semibold text-zinc-800 transition-colors hover:border-[#c8102e] hover:text-[#c8102e]"
+                onClick={() => void requestGuestAccess()}
+                disabled={requesting}
+                className="mt-2 w-full rounded-lg border border-zinc-300 bg-white px-4 py-2.5 text-sm font-semibold text-zinc-800 transition-colors hover:border-[#c8102e] hover:text-[#c8102e] disabled:opacity-50"
               >
-                Request access as guest
+                {requesting ? "Opening mail…" : "Request access as guest"}
               </button>
               <p className="mt-2.5 text-xs leading-relaxed text-zinc-400">
                 Your mail app opens with a pre-filled request to{" "}

@@ -20,10 +20,11 @@ function toDTO(s: {
 export async function GET() {
   try {
     const userId = await requireUser();
-    let settings = await prisma.settings.findUnique({ where: { userId } });
-    if (!settings) {
-      settings = await prisma.settings.create({ data: { userId } });
-    }
+    const settings = await prisma.settings.upsert({
+      where: { userId },
+      create: { userId },
+      update: {},
+    });
     return NextResponse.json({ settings: toDTO(settings) });
   } catch (err) {
     return handleError(err);

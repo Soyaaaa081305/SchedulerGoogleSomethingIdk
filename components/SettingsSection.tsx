@@ -114,8 +114,8 @@ export default function SettingsSection({
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ reminderEnabled: enabled }),
       });
-      const data = (await res.json()) as { settings: SettingsDTO };
-      if (!res.ok) throw new Error("Could not save settings");
+      const data = (await res.json().catch(() => null)) as { settings: SettingsDTO } | null;
+      if (!res.ok || !data) throw new Error("Could not save settings");
       onSettingsChange(data.settings);
       toast(
         enabled ? "success" : "info",
@@ -138,8 +138,8 @@ export default function SettingsSection({
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ semesterEnd }),
       });
-      const data = (await res.json()) as { settings: SettingsDTO };
-      if (!res.ok) throw new Error("Could not save term length");
+      const data = (await res.json().catch(() => null)) as { settings: SettingsDTO } | null;
+      if (!res.ok || !data) throw new Error("Could not save term length");
       onSettingsChange(data.settings);
       toast("success", "Term length saved — weekly classes now end on " + endOfTermLabel(data.settings.semesterEnd));
     } catch (err) {
@@ -170,14 +170,12 @@ export default function SettingsSection({
     }
   };
 
-  const selectedMonths = settings?.semesterEnd
-    ? TERM_OPTIONS.find(
-        (m) =>
-          Math.abs(
-            new Date(settings.semesterEnd!).getTime() - new Date(termEndFor(m)).getTime()
-          ) < 24 * 60 * 60 * 1000
-      )
-    : null;
+const isSelected = (m: number) => {
+    if (!settings?.semesterEnd) return m === 3;
+    return Math.abs(
+      new Date(settings.semesterEnd).getTime() - new Date(termEndFor(m)).getTime()
+    ) < 24 * 60 * 60 * 1000;
+  };
 
   return (
     <Card title="Settings">
@@ -238,17 +236,13 @@ export default function SettingsSection({
           </p>
           <div className="mt-3 flex flex-wrap items-center gap-2">
             {TERM_OPTIONS.map((m) => {
-              const active =
-                selectedMonths === m &&
-                !(
-                  settings?.semesterEnd &&
-                  selectedMonths == null
-                );
+              const active = isSelected(m);
               return (
                 <button
                   key={m}
                   type="button"
                   disabled={savingTerm}
+                  aria-pressed={active}
                   onClick={() =>
                     void saveSemesterEnd(settings?.semesterEnd ? termEndFor(m) : termEndFor(m))
                   }
@@ -266,7 +260,7 @@ export default function SettingsSection({
               type="date"
               disabled={savingTerm}
               value={
-                selectedMonths == null && settings?.semesterEnd
+                !TERM_OPTIONS.some(isSelected) && settings?.semesterEnd
                   ? new Date(settings.semesterEnd).toISOString().slice(0, 10)
                   : ""
               }

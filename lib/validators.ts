@@ -88,10 +88,6 @@ export const settingsPatchSchema = z
   })
   .strict();
 
-export const extractSchema = z.object({
-  text: z.string().min(3).max(100000),
-});
-
 export const pushSubscribeSchema = z.object({
   subscription: z.object({
     endpoint: z.string().url(),

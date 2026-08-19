@@ -98,6 +98,10 @@ export default function UploadCard({
         setError("That file is not an image. Upload a photo or screenshot of your schedule.");
         return;
       }
+      if (file.size > 5 * 1024 * 1024) {
+        setError("Image is too large. Please use a file smaller than 5 MB.");
+        return;
+      }
       if (previewUrl && previewUrl.startsWith("blob:")) URL.revokeObjectURL(previewUrl);
 
       const blobUrl = URL.createObjectURL(file);
@@ -143,7 +147,12 @@ export default function UploadCard({
         tabIndex={0}
         aria-label="Upload schedule image"
         onClick={() => inputRef.current?.click()}
-        onKeyDown={(e) => e.key === "Enter" && inputRef.current?.click()}
+        onKeyDown={(e) => {
+          if (e.key === "Enter" || e.key === " ") {
+            e.preventDefault();
+            inputRef.current?.click();
+          }
+        }}
         onDragOver={(e) => {
           e.preventDefault();
           setDragging(true);
@@ -224,6 +233,13 @@ export default function UploadCard({
       {notice && (
         <div className="mt-4">
           <NoticeBanner message={notice} />
+          <button
+            type="button"
+            onClick={clearAll}
+            className="mt-2 text-xs font-medium text-zinc-400 underline transition-colors hover:text-zinc-600"
+          >
+            Clear photo
+          </button>
         </div>
       )}
 

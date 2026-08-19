@@ -49,7 +49,7 @@ export default function Header({ user, connected }: { user: UserInfo; connected:
           </div>
         </div>
 
-        <nav className="flex items-center gap-1">
+        <nav className="flex items-center gap-1" aria-label="Main navigation">
           <NavLink href="/" label="Schedule" />
           <NavLink href="/settings" label="Settings" />
         </nav>

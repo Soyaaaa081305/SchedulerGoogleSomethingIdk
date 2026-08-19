@@ -22,7 +22,7 @@ export function Card({ title, children }: { title: string; children: ReactNode }
 
 export function Spinner({ label }: { label?: string }) {
   return (
-    <div className="flex items-center gap-3 text-sm text-zinc-500">
+    <div className="flex items-center gap-3 text-sm text-zinc-500" role="status" aria-live="polite">
       <span className="inline-block h-4 w-4 animate-spin rounded-full border-2 border-zinc-300 border-t-[#c8102e]" />
       {label && <span>{label}</span>}
     </div>
@@ -101,7 +101,7 @@ export function DayBadges({ days }: { days: string[] }) {
 
 export function ErrorBanner({ message }: { message: string }) {
   return (
-    <div className="rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700">
+    <div role="alert" className="rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700">
       {message}
     </div>
   );
@@ -109,7 +109,7 @@ export function ErrorBanner({ message }: { message: string }) {
 
 export function NoticeBanner({ message }: { message: string }) {
   return (
-    <div className="rounded-lg border border-[#f3c8cf] bg-[#fdeeef] px-3 py-2 text-sm text-[#8a0a1e]">
+    <div role="status" className="rounded-lg border border-[#f3c8cf] bg-[#fdeeef] px-3 py-2 text-sm text-[#8a0a1e]">
       {message}
     </div>
   );
@@ -193,6 +193,7 @@ export function Modal({
       <div
         role="dialog"
         aria-modal="true"
+        aria-label="Dialog"
         onClick={(e) => e.stopPropagation()}
         style={{
           position: "relative",
