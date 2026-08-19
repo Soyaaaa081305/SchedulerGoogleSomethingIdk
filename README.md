@@ -17,7 +17,11 @@ Just sign in with Google and go. No installation, no fees.
 
 ## Screenshots
 
-_(Drop your screenshots in `public/screenshots/` and add them here, e.g. `![](/screenshots/dashboard.png)`)_
+![Your schedule in the app](public/screenshots/app-schedule.png)
+
+![Uploading and reviewing your timetable](public/screenshots/app-upload.png)
+
+_3rd screenshot coming soon — Google Calendar on the phone showing the synced classes._
 
 ## Why this is free
 
