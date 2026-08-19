@@ -1,5 +1,4 @@
 import type { ReactNode, ButtonHTMLAttributes } from "react";
-import { createPortal } from "react-dom";
 import { useEffect } from "react";
 import { DAYS, type Day } from "@/lib/days";
 
@@ -174,10 +173,11 @@ export function Modal({
   }, [open]);
 
   if (!open) return null;
-  return createPortal(
+  return (
     <div
-      className="fixed left-0 top-0 z-50 flex h-full w-full items-center justify-center bg-zinc-900/50 p-3 backdrop-blur-sm sm:p-6"
-      style={{ left: 0, top: 0, right: 0, bottom: 0, margin: 0 }}
+      className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-3 sm:p-6"
+      role="dialog"
+      aria-modal="true"
     >
       <div
         className="absolute inset-0"
@@ -185,17 +185,12 @@ export function Modal({
         aria-hidden="true"
       />
       <div
-        role="dialog"
-        aria-modal="true"
-        className={`relative flex w-full ${
-          size === "lg"
-            ? "max-w-[calc(100vw_-_1.5rem)] sm:max-w-2xl"
-            : "max-w-[calc(100vw_-_1.5rem)] sm:max-w-lg"
-        } max-h-[85vh] flex-col overflow-hidden rounded-2xl bg-white shadow-2xl toast-in sm:max-h-[92vh]`}
+        className={`relative z-10 flex w-full ${
+          size === "lg" ? "max-w-3xl" : "max-w-lg"
+        } max-h-[88vh] flex-col overflow-hidden rounded-2xl bg-white shadow-2xl`}
       >
         {children}
       </div>
-    </div>,
-    document.body
+    </div>
   );
 }
