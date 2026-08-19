@@ -78,14 +78,25 @@ It returns JSON like `{ "ok": true, "users": 1, "totalSent": 1 }`.
 
 ## Deploying for free (Vercel + Neon)
 
-1. Push this repo to GitHub.
-2. Create a free account at [vercel.com](https://vercel.com) and import the repo — it deploys automatically (the included `vercel.json` registers the cron job; free plan allows it).
-3. Create a free database at [neon.tech](https://neon.tech), copy the connection string.
-4. In Vercel → Project → Settings → Environment Variables, add every variable from `.env.example`:
-   - `DATABASE_URL` = your **Neon** Postgres connection string (for Postgres, first push the schema with `npx prisma migrate deploy` using a local `DATABASE_URL` env override pointing at Neon).
+1. Push the repo to GitHub.
+2. Create a **free** database at [neon.tech](https://neon.tech) (sign in with GitHub, one click to create a project named `skeduai`). Copy the `postgresql://...` connection string.
+3. Prepare the production database (run once, from your machine):
+   ```bash
+   DATABASE_URL="postgresql://..." npm run prisma:prod
+   ```
+   This pushes the schema to Neon using `prisma/schema.postgres.prisma` (local dev keeps using SQLite via `prisma/schema.prisma`).
+4. Create a free account at [vercel.com](https://vercel.com) and import the repo — it deploys automatically (the included `vercel.json` registers the cron job; free plan allows it).
+5. In Vercel → Project → Settings → Environment Variables, add every variable from `.env.example`:
+   - `DATABASE_URL` = your **Neon** connection string
    - `NEXTAUTH_URL` = `https://<your-project>.vercel.app`
-   - Add your Vercel domain as an authorized origin + redirect URI in Google Cloud (step 2 above).
-5. Redeploy. That's it — no paid services.
+   - `GOOGLE_CLIENT_ID` / `GOOGLE_CLIENT_SECRET` / `GEMINI_API_KEY` / `VAPID_*` / `CRON_SECRET` / `TZ`
+6. Add your Vercel domain to the Google OAuth client (Authorized JavaScript origins + redirect URI `https://<your-project>.vercel.app/api/auth/callback/google`).
+7. Redeploy. That's it — all free.
+
+### Sharing with other people (Google consent screen)
+
+- **Testing mode** (current): only the emails listed under OAuth consent screen → Audience → Test users can sign in (up to 100). Add classmates' Gmails there — free and reliable.
+- **Publishing to production**: hitting "Publish app" makes the app public, but Google will show an "unverified app" warning because the app uses the Calendar API (a restricted scope). Without paying for Google's security assessment (thousands of pesos, not worth it for a project), the app may be limited to ~100 users. For class projects, **Test users (up to 100) is the practical free path**.
 
 ## Notes
 
