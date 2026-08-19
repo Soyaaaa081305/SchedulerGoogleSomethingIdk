@@ -46,6 +46,10 @@ export default function Dashboard({ user, initial }: { user: UserInfo; initial: 
   }, []);
 
   const cleanupCalendar = async () => {
+    const confirmed = window.confirm(
+      "Delete leftover class events from Google Calendar? Only events created by Scheduler that are no longer in your schedule will be removed — your personal events are kept."
+    );
+    if (!confirmed) return;
     setCleaning(true);
     try {
       const res = await fetch("/api/calendar/cleanup", { method: "POST" });
@@ -172,7 +176,7 @@ export default function Dashboard({ user, initial }: { user: UserInfo; initial: 
               </p>
               <p className="text-xs text-zinc-500">
                 Removes leftover class events in Google Calendar that are no
-                longer in your schedule here.
+                longer in your schedule here. Personal events are never touched.
               </p>
             </div>
             {cleaning ? (

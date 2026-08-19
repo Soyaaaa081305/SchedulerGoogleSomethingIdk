@@ -1,11 +1,11 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { requireUser, handleError } from "@/lib/api";
-import { getCalendarForUser } from "@/lib/calendar";
+import { getCalendarForUser, isAppEvent } from "@/lib/calendar";
 
 export const dynamic = "force-dynamic";
 
-const APP_RRULE = /RRULE:FREQ=WEEKLY;BYDAY=[A-Z,]+;UNTIL=(\d{8})T\d{6}Z/;
+const APP_RRULE = /RRULE:FREQ=WEEKLY;BYDAY=[A-Z,]+;UNTIL=\d{8}T\d{6}Z/;
 
 export async function POST() {
   try {
@@ -21,11 +21,18 @@ export async function POST() {
     const sixMonthsAgo = new Date();
     sixMonthsAgo.setMonth(sixMonthsAgo.getMonth() - 6);
 
-    const linked = await prisma.schedule.findMany({
-      where: { userId, googleEventId: { not: null } },
-      select: { googleEventId: true },
-    });
+    const [linked, mySchedules] = await Promise.all([
+      prisma.schedule.findMany({
+        where: { userId, googleEventId: { not: null } },
+        select: { googleEventId: true },
+      }),
+      prisma.schedule.findMany({
+        where: { userId },
+        select: { courseName: true },
+      }),
+    ]);
     const linkedIds = new Set(linked.map((s) => s.googleEventId!));
+    const myCourseNames = new Set(mySchedules.map((s) => s.courseName.trim().toLowerCase()));
 
     let pageToken: string | undefined;
     let candidates = 0;
@@ -42,11 +49,16 @@ export async function POST() {
       });
 
       for (const ev of res.data.items ?? []) {
-        const rrule = ev.recurrence?.[0];
-        if (!rrule || !APP_RRULE.test(rrule)) continue;
-        candidates++;
         if (linkedIds.has(ev.id ?? "")) continue;
+        const rrule = ev.recurrence?.[0];
+        const hasMarker = isAppEvent(ev);
+        const isMyClass =
+          !!rrule &&
+          APP_RRULE.test(rrule) &&
+          myCourseNames.has((ev.summary ?? "").trim().toLowerCase());
+        if (!hasMarker && !isMyClass) continue;
         if (!ev.id) continue;
+        candidates++;
         await calendar.events.delete({ calendarId: "primary", eventId: ev.id }).catch(() => {});
         deleted++;
       }

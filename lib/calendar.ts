@@ -99,6 +99,18 @@ export async function findExistingEvent(
   }
 }
 
+const APP_MARKER = "Created by Scheduler (Mapúa MCL schedule sync)";
+
+export function isAppEvent(ev: {
+  summary?: string | null;
+  description?: string | null;
+  recurrence?: string[] | null;
+}): boolean {
+  if (ev.description?.includes(APP_MARKER)) return true;
+  const rrule = ev.recurrence?.[0] ?? "";
+  return /RRULE:FREQ=WEEKLY;BYDAY=[A-Z,]+;UNTIL=\d{8}T\d{6}Z/.test(rrule);
+}
+
 export async function createWeeklyEvent(
   userId: string,
   input: CreateEventInput
@@ -116,6 +128,7 @@ export async function createWeeklyEvent(
       requestBody: {
         summary: input.courseName,
         location: input.room ?? undefined,
+        description: APP_MARKER,
         start: { dateTime: `${date}T${input.startTime}:00`, timeZone: input.timezone },
         end: { dateTime: `${date}T${input.endTime}:00`, timeZone: input.timezone },
         recurrence: [
@@ -152,6 +165,7 @@ export async function updateWeeklyEvent(
       requestBody: {
         summary: input.courseName,
         location: input.room ?? undefined,
+        description: APP_MARKER,
         start: { dateTime: `${date}T${input.startTime}:00`, timeZone: input.timezone },
         end: { dateTime: `${date}T${input.endTime}:00`, timeZone: input.timezone },
         recurrence: [
