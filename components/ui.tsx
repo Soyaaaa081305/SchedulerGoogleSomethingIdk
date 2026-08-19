@@ -173,21 +173,39 @@ export function Modal({
   }, [open]);
 
   if (!open) return null;
+
+  const maxWidth = size === "lg" ? "48rem" : "32rem";
+
   return (
     <div
-      className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-3 sm:p-6"
-      role="dialog"
-      aria-modal="true"
+      onClick={onClose}
+      style={{
+        position: "fixed",
+        inset: 0,
+        zIndex: 9999,
+        display: "flex",
+        alignItems: "center",
+        justifyContent: "center",
+        background: "rgba(0,0,0,0.5)",
+        padding: "1rem",
+      }}
     >
       <div
-        className="absolute inset-0"
-        onClick={onClose}
-        aria-hidden="true"
-      />
-      <div
-        className={`relative z-10 flex w-full ${
-          size === "lg" ? "max-w-3xl" : "max-w-lg"
-        } max-h-[88vh] flex-col overflow-hidden rounded-2xl bg-white shadow-2xl`}
+        role="dialog"
+        aria-modal="true"
+        onClick={(e) => e.stopPropagation()}
+        style={{
+          position: "relative",
+          width: "100%",
+          maxWidth,
+          maxHeight: "88vh",
+          display: "flex",
+          flexDirection: "column",
+          overflow: "hidden",
+          borderRadius: "1rem",
+          background: "white",
+          boxShadow: "0 25px 50px -12px rgba(0,0,0,0.25)",
+        }}
       >
         {children}
       </div>
