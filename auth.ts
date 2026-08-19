@@ -17,8 +17,8 @@ adapter.linkAccount = async (data) => {
   await prisma.account.upsert({
     where: {
       provider_providerAccountId: {
-        provider: data.provider,
-        providerAccountId: data.providerAccountId,
+        provider: data.provider as string,
+        providerAccountId: data.providerAccountId as string,
       },
     },
     create: data as never,
