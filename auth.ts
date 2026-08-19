@@ -1,16 +1,18 @@
 import NextAuth from "next-auth";
 import Google from "next-auth/providers/google";
 import { PrismaAdapter } from "@auth/prisma-adapter";
+import type { AdapterUser } from "@auth/core/adapters";
 import { prisma } from "@/lib/prisma";
 
 const adapter = PrismaAdapter(prisma);
 
 adapter.createUser = async (data) => {
-  return prisma.user.upsert({
+  const user = await prisma.user.upsert({
     where: { email: data.email ?? "" },
     create: data as never,
     update: data as never,
   });
+  return user as unknown as AdapterUser;
 };
 
 adapter.linkAccount = async (data) => {
