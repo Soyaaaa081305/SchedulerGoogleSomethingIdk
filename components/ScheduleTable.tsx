@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { Card, Button, DayPicker, DayBadges, ErrorBanner } from "@/components/ui";
+import ConfirmModal from "@/components/ConfirmModal";
 import { useToast } from "@/components/ToastProvider";
 import type { ScheduleDTO } from "@/lib/types";
 import type { Day } from "@/lib/days";
@@ -18,6 +19,7 @@ export default function ScheduleTable({
   const [draft, setDraft] = useState<ScheduleDTO | null>(null);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [deleting, setDeleting] = useState<ScheduleDTO | null>(null);
   const { toast } = useToast();
 
   const startEdit = (s: ScheduleDTO) => {
@@ -59,7 +61,7 @@ export default function ScheduleTable({
   };
 
   const remove = async (s: ScheduleDTO) => {
-    if (!window.confirm(`Delete "${s.courseName}" from your schedule and Google Calendar?`)) return;
+    setDeleting(null);
     setBusy(true);
     setError(null);
     try {
@@ -176,7 +178,7 @@ export default function ScheduleTable({
                 <Button variant="secondary" onClick={() => startEdit(s)}>
                   Edit
                 </Button>
-                <Button variant="danger" onClick={() => void remove(s)}>
+                <Button variant="danger" onClick={() => setDeleting(s)}>
                   Delete
                 </Button>
               </div>
@@ -184,6 +186,21 @@ export default function ScheduleTable({
           )
         )}
       </div>
+
+      <ConfirmModal
+        open={deleting !== null}
+        title="Delete this class?"
+        body={
+          deleting
+            ? `"${deleting.courseName}" will be removed from your schedule and from Google Calendar. This can't be undone.`
+            : ""
+        }
+        confirmLabel="Delete class"
+        danger
+        busy={busy}
+        onConfirm={() => deleting && void remove(deleting)}
+        onCancel={() => setDeleting(null)}
+      />
     </Card>
   );
 }

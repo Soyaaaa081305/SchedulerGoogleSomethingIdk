@@ -175,7 +175,10 @@ export function Modal({
 
   if (!open) return null;
   return createPortal(
-    <div className="fixed inset-0 z-50 grid place-items-center bg-zinc-900/50 p-4 backdrop-blur-sm">
+    <div
+      className="fixed left-0 top-0 z-50 flex h-full w-full items-center justify-center bg-zinc-900/50 p-4 backdrop-blur-sm"
+      style={{ left: 0, top: 0, right: 0, bottom: 0, margin: 0 }}
+    >
       <div
         className="absolute inset-0"
         onClick={onClose}

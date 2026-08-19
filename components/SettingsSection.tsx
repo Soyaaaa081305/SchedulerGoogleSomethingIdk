@@ -9,6 +9,7 @@ import {
   NoticeBanner,
   Spinner,
 } from "@/components/ui";
+import ConfirmModal from "@/components/ConfirmModal";
 import { useToast } from "@/components/ToastProvider";
 import { ensurePushSubscribed } from "@/lib/pushClient";
 import { TERM_OPTIONS, termEndFor } from "@/lib/term";
@@ -53,6 +54,7 @@ export default function SettingsSection({
   const [savingTerm, setSavingTerm] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [notice, setNotice] = useState<string | null>(null);
+  const [confirmingCleanup, setConfirmingCleanup] = useState(false);
   const { toast } = useToast();
 
   useEffect(() => {
@@ -292,13 +294,26 @@ export default function SettingsSection({
             {cleaning ? (
               <Spinner label="Cleaning…" />
             ) : (
-              <Button variant="secondary" onClick={onCleanup}>
+              <Button variant="secondary" onClick={() => setConfirmingCleanup(true)}>
                 Clean up
               </Button>
             )}
           </div>
         )}
       </div>
+
+      <ConfirmModal
+        open={confirmingCleanup}
+        title="Clean up Google Calendar?"
+        body="Only leftover class events created by Scheduler that are no longer in your schedule will be removed — your personal events are always kept."
+        confirmLabel="Clean up calendar"
+        busy={cleaning}
+        onConfirm={() => {
+          setConfirmingCleanup(false);
+          onCleanup();
+        }}
+        onCancel={() => setConfirmingCleanup(false)}
+      />
 
       {notice && (
         <div className="mt-4">

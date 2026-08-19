@@ -26,10 +26,6 @@ export default function SettingsPage({
   const { toast } = useToast();
 
   const cleanupCalendar = async () => {
-    const confirmed = window.confirm(
-      "Delete leftover class events from Google Calendar? Only events created by Scheduler that are no longer in your schedule will be removed — your personal events are kept."
-    );
-    if (!confirmed) return;
     setCleaning(true);
     try {
       const res = await fetch("/api/calendar/cleanup", { method: "POST" });
