@@ -17,7 +17,7 @@ export default function SignIn() {
             />
           </span>
           <h1 className="mt-4 text-2xl font-black text-zinc-900">
-            Skedu<span className="text-[#c8102e]">AI</span>
+            Scheduler
           </h1>
           <p className="mt-1 text-xs font-medium uppercase tracking-wide text-zinc-400">
             Mapúa Malayan Colleges Laguna

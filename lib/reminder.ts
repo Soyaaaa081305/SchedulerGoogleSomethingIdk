@@ -51,14 +51,14 @@ export async function buildReminderMessage(userId: string, timezone: string): Pr
 
   if (lines.length === 0) {
     return {
-      title: "SkeduAI - daily check-in",
+      title: "Scheduler - daily check-in",
       body: "No classes or due tasks for today. You're all set. Good night!",
       hasContent: false,
     };
   }
 
   return {
-    title: "SkeduAI - double-check your things!",
+    title: "Scheduler - double-check your things!",
     body: lines.join("\n"),
     hasContent: true,
   };

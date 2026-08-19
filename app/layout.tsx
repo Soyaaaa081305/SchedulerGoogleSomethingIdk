@@ -13,7 +13,7 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "SkeduAI — AI School Schedule Assistant",
+  title: "Scheduler — AI School Schedule Assistant",
   description:
     "Upload your class schedule, let AI read it, and sync it into Google Calendar with a nightly reminder to double-check your tasks and due dates.",
 };

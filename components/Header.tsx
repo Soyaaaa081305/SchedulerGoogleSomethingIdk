@@ -41,7 +41,7 @@ export default function Header({ user, connected }: { user: UserInfo; connected:
           />
           <div>
             <h1 className="text-base font-black leading-tight text-zinc-900">
-              Skedu<span className="text-[#c8102e]">AI</span>
+              Scheduler
             </h1>
             <p className="text-[11px] leading-tight text-zinc-500">
               Mapúa Malayan Colleges Laguna

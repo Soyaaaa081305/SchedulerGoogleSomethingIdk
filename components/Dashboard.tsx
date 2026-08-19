@@ -147,8 +147,8 @@ export default function Dashboard({ user, initial }: { user: UserInfo; initial: 
         )}
 
         <footer className="border-t border-zinc-200 pt-4 text-center text-xs text-zinc-400">
-          SkeduAI — made for students of Mapúa Malayan Colleges Laguna. No more
-          makakalimutin.
+          Scheduler — made for students of Mapúa Malayan Colleges Laguna. No
+          more makakalimutin.
         </footer>
       </main>
     </div>
