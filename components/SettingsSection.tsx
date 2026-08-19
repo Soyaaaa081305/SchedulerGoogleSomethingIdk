@@ -73,6 +73,24 @@ export default function SettingsSection({
 
   const isOn = Boolean(settings?.reminderEnabled);
 
+  const subscribeNow = async () => {
+    setError(null);
+    setNotice(null);
+    setBusy(true);
+    try {
+      await ensurePushSubscribed();
+      setSubscribed(true);
+      setNotice(
+        "Notifications are enabled — you'll get a push every night at 9:00 PM with tomorrow's classes."
+      );
+      toast("success", "Notifications enabled.");
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Could not enable notifications");
+    } finally {
+      setBusy(false);
+    }
+  };
+
   const enableReminder = async (enabled: boolean) => {
     if (!settings) return;
     setError(null);
@@ -181,10 +199,21 @@ export default function SettingsSection({
             </div>
           )}
 
-          {subscribed === false && isOn && (
-            <div className="mt-3 rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-sm text-amber-700">
-              Notifications are not enabled — toggle the reminder off and on to
-              allow them.
+          {subscribed === false && (
+            <div className="mt-3 flex flex-wrap items-center gap-3 rounded-lg border border-amber-200 bg-amber-50 px-3 py-2">
+              <p className="text-sm text-amber-700">
+                {isOn
+                  ? "No push subscription found — enable browser notifications to receive the reminder."
+                  : "Your browser hasn't asked for notification permission yet."}
+              </p>
+              <Button
+                variant="secondary"
+                onClick={() => void subscribeNow()}
+                disabled={busy}
+                className="ml-auto"
+              >
+                {busy ? "Enabling…" : "Allow notifications"}
+              </Button>
             </div>
           )}
 
@@ -192,7 +221,7 @@ export default function SettingsSection({
             <Button
               variant="secondary"
               onClick={() => void testReminder()}
-              disabled={testing || !isOn}
+              disabled={testing || !isOn || subscribed !== true}
             >
               {testing ? "Sending…" : "Test reminder"}
             </Button>

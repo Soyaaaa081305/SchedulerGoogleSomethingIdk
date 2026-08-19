@@ -100,7 +100,7 @@ export default function Dashboard({ user, initial }: { user: UserInfo; initial: 
 
   return (
     <div className="flex min-h-screen flex-col bg-[#f6f6f7]">
-      <Header user={user} connected={connected} onHowItWorks={onboarding.reopen} />
+      <Header user={user} connected={connected} />
 
       {!connected && (
         <div className="border-b border-[#f3c8cf] bg-[#fdeeef]">

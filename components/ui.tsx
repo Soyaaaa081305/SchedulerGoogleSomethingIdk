@@ -1,4 +1,6 @@
 import type { ReactNode, ButtonHTMLAttributes } from "react";
+import { createPortal } from "react-dom";
+import { useEffect } from "react";
 import { DAYS, type Day } from "@/lib/days";
 
 export const BRAND = {
@@ -154,11 +156,28 @@ export function Modal({
   children: ReactNode;
   size?: "md" | "lg";
 }) {
+  useEffect(() => {
+    if (!open) return;
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === "Escape" && onClose) onClose();
+    };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [open, onClose]);
+
+  useEffect(() => {
+    if (!open) return;
+    document.body.style.overflow = "hidden";
+    return () => {
+      document.body.style.overflow = "";
+    };
+  }, [open]);
+
   if (!open) return null;
-  return (
-    <div className="fixed inset-0 z-40 flex items-center justify-center p-4">
+  return createPortal(
+    <div className="fixed inset-0 z-50 grid place-items-center bg-zinc-900/50 p-4 backdrop-blur-sm">
       <div
-        className="absolute inset-0 bg-zinc-900/50 backdrop-blur-sm"
+        className="absolute inset-0"
         onClick={onClose}
         aria-hidden="true"
       />
@@ -167,10 +186,11 @@ export function Modal({
         aria-modal="true"
         className={`relative w-full ${
           size === "lg" ? "max-w-2xl" : "max-w-lg"
-        } rounded-2xl bg-white shadow-2xl toast-in`}
+        } max-h-[92vh] overflow-y-auto rounded-2xl bg-white shadow-2xl toast-in`}
       >
         {children}
       </div>
-    </div>
+    </div>,
+    document.body
   );
 }

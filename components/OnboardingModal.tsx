@@ -47,9 +47,7 @@ export function useOnboarding() {
     setOpen(false);
   };
 
-  const reopen = () => setOpen(true);
-
-  return { open, close, reopen };
+  return { open, close };
 }
 
 export default function OnboardingModal({

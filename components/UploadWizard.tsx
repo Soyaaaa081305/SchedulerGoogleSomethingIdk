@@ -1,14 +1,13 @@
 "use client";
 
 import { useMemo, useState } from "react";
-import { Modal, Button, Toggle, Spinner, ErrorBanner } from "@/components/ui";
+import { Modal, Button, Toggle, Spinner, ErrorBanner, NoticeBanner } from "@/components/ui";
 import { useToast } from "@/components/ToastProvider";
 import { ensurePushSubscribed } from "@/lib/pushClient";
 import { TERM_OPTIONS, TERM_LABELS, termEndFor } from "@/lib/term";
 import type { ScheduleDTO, SettingsDTO } from "@/lib/types";
 import type { ParsedCourse } from "@/lib/gemini";
-import type { Row } from "@/components/UploadCard";
-import { CourseRowEditor } from "@/components/UploadCard";
+import { CourseRowEditor, type Row } from "@/components/CourseRowEditor";
 
 async function saveSchedule(row: ParsedCourse): Promise<ScheduleDTO> {
   const res = await fetch("/api/schedules", {
@@ -50,8 +49,25 @@ export default function UploadWizard({
   const [reminderOn, setReminderOn] = useState(settings?.reminderEnabled ?? true);
   const [syncing, setSyncing] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [reminderError, setReminderError] = useState<string | null>(null);
+  const [reminderNotice, setReminderNotice] = useState<string | null>(null);
 
   const selected = useMemo(() => rowsState.filter((r) => r.selected), [rowsState]);
+
+  const toggleReminder = async (on: boolean) => {
+    setReminderOn(on);
+    setReminderError(null);
+    setReminderNotice(null);
+    if (!on) return;
+    try {
+      await ensurePushSubscribed();
+      setReminderNotice(
+        "Notifications are enabled — you'll get a push at 9:00 PM with tomorrow's classes."
+      );
+    } catch (err) {
+      setReminderError(err instanceof Error ? err.message : "Could not enable notifications");
+    }
+  };
 
   const patchSettings = async (body: Record<string, unknown>) => {
     const res = await fetch("/api/settings", {
@@ -71,9 +87,31 @@ export default function UploadWizard({
     try {
       await patchSettings({ semesterEnd, reminderEnabled: reminderOn });
       if (reminderOn) {
-        await ensurePushSubscribed().catch(() => {
-          // Reminder preference is still saved; the user can re-enable later.
-        });
+        try {
+          const reg = await navigator.serviceWorker?.getRegistration();
+          const sub = reg ? await reg.pushManager.getSubscription() : null;
+          if (!sub) await ensurePushSubscribed();
+          else {
+            // must be saved server-side too for the cron to find it
+            await fetch("/api/push/subscribe", {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({
+                subscription: {
+                  endpoint: sub.endpoint,
+                  keys: {
+                    p256dh: btoa(String.fromCharCode(...new Uint8Array(sub.getKey("p256dh")!))),
+                    auth: btoa(String.fromCharCode(...new Uint8Array(sub.getKey("auth")!))),
+                  },
+                },
+              }),
+            });
+          }
+        } catch {
+          setReminderError(
+            "Classes will sync, but notifications are blocked — allow them later in Settings."
+          );
+        }
       }
       for (const row of selected) {
         const dto = await saveSchedule({
@@ -216,11 +254,22 @@ export default function UploadWizard({
                 <p className="text-sm font-medium text-zinc-900">Daily reminder</p>
                 <p className="text-sm text-zinc-500">9:00 PM · Asia/Manila</p>
               </div>
-              <Toggle checked={reminderOn} onChange={setReminderOn} />
+              <Toggle checked={reminderOn} onChange={(v) => void toggleReminder(v)} />
             </div>
-            {reminderOn && (
+            {reminderNotice && (
+              <div className="mt-3">
+                <NoticeBanner message={reminderNotice} />
+              </div>
+            )}
+            {reminderError && (
+              <div className="mt-3">
+                <ErrorBanner message={reminderError} />
+              </div>
+            )}
+            {reminderOn && !reminderError && (
               <p className="mt-3 text-sm text-zinc-500">
-                You can change the time or turn it off anytime in Settings.
+                Your browser will ask for permission when you turn it on. You
+                can change the time or turn it off anytime in Settings.
               </p>
             )}
           </div>

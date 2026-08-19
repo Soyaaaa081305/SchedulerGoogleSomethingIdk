@@ -27,15 +27,7 @@ function NavLink({ href, label }: { href: string; label: string }) {
   );
 }
 
-export default function Header({
-  user,
-  connected,
-  onHowItWorks,
-}: {
-  user: UserInfo;
-  connected: boolean;
-  onHowItWorks?: () => void;
-}) {
+export default function Header({ user, connected }: { user: UserInfo; connected: boolean }) {
   return (
     <header className="sticky top-0 z-10 border-b border-zinc-200 bg-white/95 backdrop-blur">
       <div className="h-1 bg-[#c8102e]" aria-hidden="true" />
@@ -59,15 +51,6 @@ export default function Header({
 
         <nav className="flex items-center gap-1">
           <NavLink href="/" label="Schedule" />
-          {onHowItWorks && (
-            <button
-              type="button"
-              onClick={onHowItWorks}
-              className="rounded-lg px-3 py-1.5 text-sm font-medium text-zinc-600 transition-colors hover:bg-zinc-100"
-            >
-              How it works
-            </button>
-          )}
         </nav>
 
         <div className="flex items-center gap-2">
