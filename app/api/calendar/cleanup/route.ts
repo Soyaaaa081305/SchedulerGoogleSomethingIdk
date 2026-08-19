@@ -43,7 +43,6 @@ export async function POST() {
         calendarId: "primary",
         timeMin: sixMonthsAgo.toISOString(),
         singleEvents: false,
-        orderBy: "startTime",
         maxResults: 250,
         pageToken,
       });

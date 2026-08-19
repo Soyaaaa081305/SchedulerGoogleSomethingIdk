@@ -1,10 +1,10 @@
 self.addEventListener("push", (event) => {
   const data = event.data ? event.data.json() : {};
-  const title = data.title || "SkeduAI";
+  const title = data.title || "Scheduler";
   const options = {
     body: data.body || "",
-    icon: "/favicon.ico",
-    badge: "/favicon.ico",
+    icon: "/favicon-32.png",
+    badge: "/favicon-32.png",
   };
   event.waitUntil(self.registration.showNotification(title, options));
 });
