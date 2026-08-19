@@ -336,29 +336,22 @@ export default function UploadWizard({
             <Button variant="ghost" onClick={() => setStep((s) => Math.max(0, s - 1))} disabled={step === 0 || syncing}>
               Back
             </Button>
-            <div className="flex items-center gap-2">
-              {step < 3 && (
-                <Button variant="ghost" onClick={onClose} disabled={syncing}>
-                  Skip
-                </Button>
-              )}
-              <Button
-                onClick={() => {
-                  if (step === STEPS.length - 1) {
-                    void sync();
-                  } else {
-                    setStep((s) => s + 1);
-                  }
-                }}
-                disabled={syncing || (step === 0 && selected.length === 0)}
-              >
-                {step === STEPS.length - 1
-                  ? syncing
-                    ? "Syncing…"
-                    : `Sync ${selected.length} to Google Calendar`
-                  : "Next"}
-              </Button>
-            </div>
+            <Button
+              onClick={() => {
+                if (step === STEPS.length - 1) {
+                  void sync();
+                } else {
+                  setStep((s) => s + 1);
+                }
+              }}
+              disabled={syncing || (step === 0 && selected.length === 0)}
+            >
+              {step === STEPS.length - 1
+                ? syncing
+                  ? "Syncing…"
+                  : `Sync ${selected.length} to Google Calendar`
+                : "Next"}
+            </Button>
           </div>
         </div>
       </div>

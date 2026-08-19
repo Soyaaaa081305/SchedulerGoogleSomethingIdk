@@ -69,14 +69,6 @@ export default function OnboardingModal({
       <div style={{ flex: 1, minHeight: 0, overflowY: "auto", padding: "1.25rem" }} className="sm:p-8">
         <div className="flex items-start justify-between">
           <span className="text-4xl">{current.icon}</span>
-          <button
-            type="button"
-            aria-label="Skip tour"
-            onClick={onClose}
-            className="rounded-full border border-zinc-200 px-3 py-1 text-xs font-semibold text-zinc-500 transition-colors hover:border-zinc-300 hover:text-zinc-800"
-          >
-            Skip tour
-          </button>
         </div>
 
         <h2 className="mt-4 text-xl font-black text-zinc-900 sm:text-2xl">{current.title}</h2>

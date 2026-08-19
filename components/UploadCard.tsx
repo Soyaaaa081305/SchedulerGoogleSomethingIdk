@@ -13,6 +13,8 @@ import { useToast } from "@/components/ToastProvider";
 import UploadWizard from "@/components/UploadWizard";
 import type { Row } from "@/components/CourseRowEditor";
 
+const PREVIEW_KEY = "scheduler-upload-preview";
+
 async function uploadImage(file: File): Promise<ParsedCourse[]> {
   const form = new FormData();
   form.append("image", file);
@@ -23,6 +25,30 @@ async function uploadImage(file: File): Promise<ParsedCourse[]> {
   }
   const data = (await res.json()) as { courses: ParsedCourse[] };
   return data.courses;
+}
+
+function readSavedPreview(): string | null {
+  try {
+    return localStorage.getItem(PREVIEW_KEY);
+  } catch {
+    return null;
+  }
+}
+
+function savePreview(dataUrl: string) {
+  try {
+    localStorage.setItem(PREVIEW_KEY, dataUrl);
+  } catch {
+    // private mode or full — ignore
+  }
+}
+
+function clearSavedPreview() {
+  try {
+    localStorage.removeItem(PREVIEW_KEY);
+  } catch {
+    // ignore
+  }
 }
 
 export default function UploadCard({
@@ -39,23 +65,28 @@ export default function UploadCard({
   const [dragging, setDragging] = useState(false);
   const [loading, setLoading] = useState(false);
   const [rows, setRows] = useState<Row[]>([]);
-  const [previewUrl, setPreviewUrl] = useState<string | null>(null);
+  const [previewUrl, setPreviewUrl] = useState<string | null>(() => readSavedPreview());
   const [error, setError] = useState<string | null>(null);
   const [notice, setNotice] = useState<string | null>(null);
 
   useEffect(() => {
     return () => {
-      if (previewUrl) URL.revokeObjectURL(previewUrl);
+      if (previewUrl && previewUrl.startsWith("blob:")) URL.revokeObjectURL(previewUrl);
     };
   }, [previewUrl]);
 
-  const clear = () => {
+  const clearRows = () => {
     setRows([]);
     setNotice(null);
     setError(null);
     setLoading(false);
-    if (previewUrl) URL.revokeObjectURL(previewUrl);
+  };
+
+  const clearAll = () => {
+    clearRows();
+    if (previewUrl && previewUrl.startsWith("blob:")) URL.revokeObjectURL(previewUrl);
     setPreviewUrl(null);
+    clearSavedPreview();
     if (inputRef.current) inputRef.current.value = "";
   };
 
@@ -67,8 +98,23 @@ export default function UploadCard({
         setError("That file is not an image. Upload a photo or screenshot of your schedule.");
         return;
       }
-      if (previewUrl) URL.revokeObjectURL(previewUrl);
-      setPreviewUrl(URL.createObjectURL(file));
+      if (previewUrl && previewUrl.startsWith("blob:")) URL.revokeObjectURL(previewUrl);
+
+      const blobUrl = URL.createObjectURL(file);
+      setPreviewUrl(blobUrl);
+
+      try {
+        const reader = new FileReader();
+        const dataUrl = await new Promise<string>((resolve, reject) => {
+          reader.onload = () => resolve(reader.result as string);
+          reader.onerror = reject;
+          reader.readAsDataURL(file);
+        });
+        savePreview(dataUrl);
+      } catch {
+        // non-critical — ignore
+      }
+
       setLoading(true);
       try {
         const courses = await uploadImage(file);
@@ -193,11 +239,11 @@ export default function UploadCard({
       {rows.length > 0 && (
         <UploadWizard
           rows={rows}
-          onClose={clear}
+          onClose={clearRows}
           onSaved={onSaved}
           settings={settings}
           onSettingsChange={onSettingsChange}
-          onCleared={clear}
+          onCleared={clearRows}
         />
       )}
     </Card>
