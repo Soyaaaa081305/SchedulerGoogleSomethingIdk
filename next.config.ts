@@ -1,7 +1,7 @@
 import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
-  /* config options here */
+  serverExternalPackages: ["@prisma/client", "googleapis", "web-push", "better-sqlite3", "prisma"],
 };
 
 export default nextConfig;

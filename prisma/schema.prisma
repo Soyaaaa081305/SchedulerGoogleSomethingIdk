@@ -1,0 +1,95 @@
+// SkeduAI schema — works on SQLite (local) and Postgres (Neon, production).
+// Note: scalar lists (String[]) are not supported on SQLite, so daysOfWeek is
+// stored as a comma-separated string, e.g. "MON,WED".
+
+generator client {
+  provider = "prisma-client"
+  output   = "../app/generated/prisma"
+}
+
+datasource db {
+  provider = "sqlite"
+}
+
+model User {
+  id            String    @id @default(cuid())
+  name          String?
+  email         String?   @unique
+  emailVerified DateTime?
+  image         String?
+  accounts      Account[]
+  sessions      Session[]
+  schedules     Schedule[]
+  tasks         Task[]
+  pushSubs      PushSubscription[]
+  settings      Settings?
+}
+
+model Account {
+  userId            String
+  type              String
+  provider          String
+  providerAccountId String
+  refresh_token     String?
+  access_token      String?
+  expires_at        Int?
+  token_type        String?
+  scope             String?
+  id_token          String?
+  session_state     String?
+  user              User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@id([provider, providerAccountId])
+}
+
+model Session {
+  sessionToken String   @unique
+  userId       String
+  expires      DateTime
+  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model Schedule {
+  id            String    @id @default(cuid())
+  userId        String
+  courseName    String
+  daysOfWeek    String
+  startTime     String
+  endTime       String
+  room          String?
+  googleEventId String?
+  lastSyncedAt  DateTime?
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+  user          User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model Task {
+  id        String    @id @default(cuid())
+  userId    String
+  title     String
+  dueDate   DateTime?
+  source    String    @default("manual")
+  completed Boolean   @default(false)
+  createdAt DateTime  @default(now())
+  user      User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model PushSubscription {
+  id         String   @id @default(cuid())
+  userId     String
+  endpoint   String   @unique
+  keysP256dh String
+  keysAuth   String
+  createdAt  DateTime @default(now())
+  user       User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model Settings {
+  userId          String   @id
+  reminderEnabled Boolean  @default(true)
+  reminderTime    String   @default("21:00")
+  timezone        String   @default("Asia/Manila")
+  updatedAt       DateTime @updatedAt
+  user            User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+}

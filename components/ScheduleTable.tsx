@@ -1,0 +1,176 @@
+"use client";
+
+import { useState } from "react";
+import { Card, Button, DayPicker, DayBadges, ErrorBanner } from "@/components/ui";
+import type { ScheduleDTO } from "@/lib/types";
+import type { Day } from "@/lib/days";
+import { formatTime12h } from "@/lib/days";
+
+export default function ScheduleTable({
+  schedules,
+  onChange,
+}: {
+  schedules: ScheduleDTO[];
+  onChange: (schedules: ScheduleDTO[]) => void;
+}) {
+  const [editingId, setEditingId] = useState<string | null>(null);
+  const [draft, setDraft] = useState<ScheduleDTO | null>(null);
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  const startEdit = (s: ScheduleDTO) => {
+    setEditingId(s.id);
+    setDraft({ ...s, daysOfWeek: [...s.daysOfWeek] });
+  };
+
+  const saveEdit = async () => {
+    if (!draft) return;
+    setBusy(true);
+    setError(null);
+    try {
+      const res = await fetch(`/api/schedules/${draft.id}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          courseName: draft.courseName,
+          daysOfWeek: draft.daysOfWeek,
+          startTime: draft.startTime,
+          endTime: draft.endTime,
+          room: draft.room,
+        }),
+      });
+      const data = (await res.json().catch(() => null)) as {
+        schedule?: ScheduleDTO;
+        error?: string;
+      } | null;
+      if (!res.ok) throw new Error(data?.error ?? "Could not update schedule");
+      onChange(schedules.map((s) => (s.id === draft.id ? data!.schedule! : s)));
+      setEditingId(null);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Update failed");
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  const remove = async (s: ScheduleDTO) => {
+    if (!window.confirm(`Delete "${s.courseName}" from your schedule and Google Calendar?`)) return;
+    setBusy(true);
+    setError(null);
+    try {
+      const res = await fetch(`/api/schedules/${s.id}`, { method: "DELETE" });
+      if (!res.ok) throw new Error("Could not delete schedule");
+      onChange(schedules.filter((x) => x.id !== s.id));
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Delete failed");
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  if (schedules.length === 0) {
+    return (
+      <Card title="Your schedule">
+        <p className="text-sm text-zinc-500">
+          No classes yet. Upload your timetable above, or add classes once
+          they&apos;re extracted.
+        </p>
+      </Card>
+    );
+  }
+
+  return (
+    <Card title="Your schedule">
+      {error && (
+        <div className="mb-4">
+          <ErrorBanner message={error} />
+        </div>
+      )}
+      <div className="space-y-3">
+        {schedules.map((s) =>
+          editingId === s.id && draft ? (
+            <div key={s.id} className="flex flex-col gap-3 rounded-xl border border-[#f3c8cf] bg-[#fdf7f8] p-3">
+              <input
+                type="text"
+                value={draft.courseName}
+                onChange={(e) => setDraft({ ...draft, courseName: e.target.value })}
+                className="rounded-lg border border-zinc-300 bg-white px-2 py-1.5 text-sm text-zinc-900"
+              />
+              <div className="flex flex-wrap items-center gap-3 text-sm">
+                <label className="flex items-center gap-1.5 text-zinc-600">
+                  Start
+                  <input
+                    type="time"
+                    value={draft.startTime}
+                    onChange={(e) => setDraft({ ...draft, startTime: e.target.value })}
+                    className="rounded-lg border border-zinc-300 bg-white px-2 py-1.5 text-sm text-zinc-900"
+                  />
+                </label>
+                <label className="flex items-center gap-1.5 text-zinc-600">
+                  End
+                  <input
+                    type="time"
+                    value={draft.endTime}
+                    onChange={(e) => setDraft({ ...draft, endTime: e.target.value })}
+                    className="rounded-lg border border-zinc-300 bg-white px-2 py-1.5 text-sm text-zinc-900"
+                  />
+                </label>
+                <label className="flex items-center gap-1.5 text-zinc-600">
+                  Room
+                  <input
+                    type="text"
+                    value={draft.room ?? ""}
+                    onChange={(e) => setDraft({ ...draft, room: e.target.value || null })}
+                    className="rounded-lg border border-zinc-300 bg-white px-2 py-1.5 text-sm text-zinc-900"
+                  />
+                </label>
+              </div>
+              <DayPicker value={draft.daysOfWeek as Day[]} onChange={(days) => setDraft({ ...draft, daysOfWeek: days })} />
+              <div className="flex gap-2">
+                <Button onClick={() => void saveEdit()} disabled={busy}>
+                  Save
+                </Button>
+                <Button
+                  variant="secondary"
+                  onClick={() => {
+                    setEditingId(null);
+                    setDraft(null);
+                  }}
+                >
+                  Cancel
+                </Button>
+              </div>
+            </div>
+          ) : (
+            <div key={s.id} className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-zinc-200 p-3">
+              <div className="min-w-0">
+                <p className="font-medium text-zinc-900">{s.courseName}</p>
+                <p className="text-sm text-zinc-500">
+                  {formatTime12h(s.startTime)} – {formatTime12h(s.endTime)}
+                  {s.room ? ` · ${s.room}` : ""}
+                </p>
+              </div>
+              <div className="flex flex-wrap items-center gap-3">
+                <DayBadges days={s.daysOfWeek} />
+                <span
+                  className={`text-xs font-medium ${
+                    s.synced ? "text-green-600" : "text-amber-600"
+                  }`}
+                  title={s.synced ? "Synced to Google Calendar" : "Not synced"}
+                >
+                  {s.synced ? "✓ synced" : "⚠ unsynced"}
+                </span>
+                <Button variant="secondary" onClick={() => startEdit(s)}>
+                  Edit
+                </Button>
+                <Button variant="danger" onClick={() => void remove(s)}>
+                  Delete
+                </Button>
+              </div>
+            </div>
+          )
+        )}
+      </div>
+    </Card>
+  );
+}
