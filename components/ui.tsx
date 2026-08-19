@@ -188,7 +188,9 @@ export function Modal({
         role="dialog"
         aria-modal="true"
         className={`relative flex w-full ${
-          size === "lg" ? "max-w-[calc(100vw-1.5rem)] sm:max-w-2xl" : "max-w-[calc(100vw-1.5rem)] sm:max-w-lg"
+          size === "lg"
+            ? "max-w-[calc(100vw_-_1.5rem)] sm:max-w-2xl"
+            : "max-w-[calc(100vw_-_1.5rem)] sm:max-w-lg"
         } max-h-[85vh] flex-col overflow-hidden rounded-2xl bg-white shadow-2xl toast-in sm:max-h-[92vh]`}
       >
         {children}
