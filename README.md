@@ -21,7 +21,7 @@ Just sign in with Google and go. No installation, no fees.
 
 ![Uploading and reviewing your timetable](public/screenshots/app-upload.png)
 
-_3rd screenshot coming soon — Google Calendar on the phone showing the synced classes._
+![The synced classes on Google Calendar](public/screenshots/phone-google-calendar.jpg)
 
 ## Why this is free
 
