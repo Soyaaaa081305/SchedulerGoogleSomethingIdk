@@ -2,10 +2,7 @@
   "crons": [
     {
       "path": "/api/cron",
-      "schedule": "0 13 * * *",
-      "headers": {
-        "Authorization": "Bearer $CRON_SECRET"
-      }
+      "schedule": "0 13 * * *"
     }
   ]
 }

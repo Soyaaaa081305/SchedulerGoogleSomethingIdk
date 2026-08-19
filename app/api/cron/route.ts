@@ -6,6 +6,7 @@ import { sendPushToUser } from "@/lib/push";
 export const dynamic = "force-dynamic";
 
 function isAuthorized(req: Request): boolean {
+  if (req.headers.get("x-vercel-cron") === "1") return true;
   const secret = process.env.CRON_SECRET;
   if (!secret) return false;
   const header = req.headers.get("x-cron-secret");
