@@ -176,7 +176,7 @@ export function Modal({
   if (!open) return null;
   return createPortal(
     <div
-      className="fixed left-0 top-0 z-50 flex h-full w-full items-center justify-center bg-zinc-900/50 p-4 backdrop-blur-sm"
+      className="fixed left-0 top-0 z-50 flex h-full w-full items-center justify-center bg-zinc-900/50 p-3 backdrop-blur-sm sm:p-6"
       style={{ left: 0, top: 0, right: 0, bottom: 0, margin: 0 }}
     >
       <div
@@ -188,8 +188,8 @@ export function Modal({
         role="dialog"
         aria-modal="true"
         className={`relative flex w-full ${
-          size === "lg" ? "max-w-2xl" : "max-w-lg"
-        } max-h-[92vh] flex-col overflow-hidden rounded-2xl bg-white shadow-2xl toast-in`}
+          size === "lg" ? "max-w-[calc(100vw-1.5rem)] sm:max-w-2xl" : "max-w-[calc(100vw-1.5rem)] sm:max-w-lg"
+        } max-h-[85vh] flex-col overflow-hidden rounded-2xl bg-white shadow-2xl toast-in sm:max-h-[92vh]`}
       >
         {children}
       </div>

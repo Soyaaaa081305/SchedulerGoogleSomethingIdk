@@ -145,8 +145,8 @@ export default function UploadWizard({
 
   return (
     <Modal open onClose={syncing ? () => {} : onClose} size="lg">
-      <div className="flex max-h-[92vh] flex-col">
-        <div className="shrink-0 p-6 pb-0 sm:p-8 sm:pb-0">
+      <div className="flex min-h-0 flex-col">
+        <div className="shrink-0 p-4 pb-0 sm:p-6 sm:pb-0 sm:px-8">
           <div className="flex items-center gap-1.5">
             {STEPS.map((label, i) => (
               <span
@@ -157,12 +157,12 @@ export default function UploadWizard({
               />
             ))}
           </div>
-          <p className="mt-3 text-xs font-semibold uppercase tracking-wide text-zinc-400">
+          <p className="mt-2 text-xs font-semibold uppercase tracking-wide text-zinc-400">
             Step {step + 1} of {STEPS.length} — {STEPS[step]}
           </p>
         </div>
 
-        <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain p-6 sm:p-8">
+        <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain p-4 sm:p-6 sm:px-8">
         {step === 0 && (
           <div className="mt-4">
             <h2 className="text-xl font-black text-zinc-900">Review your classes</h2>
@@ -331,7 +331,7 @@ export default function UploadWizard({
         )}
         </div>
 
-        <div className="shrink-0 border-t border-zinc-100 p-4 sm:p-5">
+        <div className="shrink-0 border-t border-zinc-100 p-3 sm:p-4 sm:px-8">
           <div className="flex items-center justify-between">
             <Button variant="ghost" onClick={() => setStep((s) => Math.max(0, s - 1))} disabled={step === 0 || syncing}>
               Back
