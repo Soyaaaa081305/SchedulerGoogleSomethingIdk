@@ -6,6 +6,8 @@ import Header, { type UserInfo } from "@/components/Header";
 import UploadCard from "@/components/UploadCard";
 import ScheduleTable from "@/components/ScheduleTable";
 import ReminderCard from "@/components/ReminderCard";
+import { Button, Spinner } from "@/components/ui";
+import { useToast } from "@/components/ToastProvider";
 import type { ScheduleDTO, SettingsDTO } from "@/lib/types";
 
 export interface TodaySummary {
@@ -36,10 +38,34 @@ export default function Dashboard({ user, initial }: { user: UserInfo; initial: 
   const [connected, setConnected] = useState(initial.connected);
   const [needsReconnect, setNeedsReconnect] = useState(initial.needsReconnect);
   const [lastSync, setLastSync] = useState(initial.lastSync);
+  const [cleaning, setCleaning] = useState(false);
+  const { toast } = useToast();
 
   useEffect(() => {
     navigator.serviceWorker?.register("/sw.js").catch(() => {});
   }, []);
+
+  const cleanupCalendar = async () => {
+    setCleaning(true);
+    try {
+      const res = await fetch("/api/calendar/cleanup", { method: "POST" });
+      const data = (await res.json().catch(() => null)) as {
+        deleted?: number;
+        error?: string;
+      } | null;
+      if (!res.ok) throw new Error(data?.error ?? "Cleanup failed");
+      toast(
+        "success",
+        data!.deleted! > 0
+          ? `Removed ${data!.deleted} leftover class event${data!.deleted! > 1 ? "s" : ""} from Google Calendar.`
+          : "Nothing to clean — your calendar matches your schedule."
+      );
+    } catch (err) {
+      toast("error", err instanceof Error ? err.message : "Cleanup failed");
+    } finally {
+      setCleaning(false);
+    }
+  };
 
   const firstName = useMemo(() => (user.name ?? user.email ?? "").split(" ")[0], [user.name, user.email]);
 
@@ -137,6 +163,28 @@ export default function Dashboard({ user, initial }: { user: UserInfo; initial: 
 
         <UploadCard onSaved={onSaved} />
         <ScheduleTable schedules={schedules} onChange={setSchedules} />
+
+        {connected && (
+          <section className="flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-zinc-200 bg-white p-4 shadow-sm">
+            <div>
+              <p className="text-sm font-medium text-zinc-900">
+                Calendar cleanup
+              </p>
+              <p className="text-xs text-zinc-500">
+                Removes leftover class events in Google Calendar that are no
+                longer in your schedule here.
+              </p>
+            </div>
+            {cleaning ? (
+              <Spinner label="Cleaning…" />
+            ) : (
+              <Button variant="secondary" onClick={() => void cleanupCalendar()}>
+                Clean up
+              </Button>
+            )}
+          </section>
+        )}
+
         <ReminderCard settings={settings} onSettingsChange={setSettings} />
 
         {lastSync && (
