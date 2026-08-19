@@ -150,23 +150,28 @@ export default function ScheduleTable({
               </div>
             </div>
           ) : (
-            <div key={s.id} className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-zinc-200 p-3">
+            <div
+              key={s.id}
+              className="flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-zinc-200 bg-white p-4 transition-colors hover:border-zinc-300"
+            >
               <div className="min-w-0">
-                <p className="font-medium text-zinc-900">{s.courseName}</p>
+                <p className="font-semibold text-zinc-900">{s.courseName}</p>
                 <p className="text-sm text-zinc-500">
-                  {formatTime12h(s.startTime)} – {formatTime12h(s.endTime)}
+                  <span className="font-medium text-zinc-600">
+                    {formatTime12h(s.startTime)} – {formatTime12h(s.endTime)}
+                  </span>
                   {s.room ? ` · ${s.room}` : ""}
                 </p>
               </div>
               <div className="flex flex-wrap items-center gap-3">
                 <DayBadges days={s.daysOfWeek} />
                 <span
-                  className={`text-xs font-medium ${
-                    s.synced ? "text-green-600" : "text-amber-600"
+                  className={`rounded-full px-2 py-0.5 text-xs font-medium ${
+                    s.synced ? "bg-green-100 text-green-700" : "bg-amber-100 text-amber-700"
                   }`}
                   title={s.synced ? "Synced to Google Calendar" : "Not synced"}
                 >
-                  {s.synced ? "✓ synced" : "⚠ unsynced"}
+                  {s.synced ? "✓ synced" : "unsynced"}
                 </span>
                 <Button variant="secondary" onClick={() => startEdit(s)}>
                   Edit

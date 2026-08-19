@@ -334,7 +334,7 @@ export default function UploadWizard({
           <div className="flex items-center gap-2">
             {step < 3 && (
               <Button variant="ghost" onClick={onClose} disabled={syncing}>
-                Cancel
+                Skip
               </Button>
             )}
             <Button

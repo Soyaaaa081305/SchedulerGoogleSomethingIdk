@@ -71,20 +71,20 @@ export default function OnboardingModal({
 
   return (
     <Modal open={open} onClose={onClose}>
-      <div className="p-8">
+      <div className="p-6 sm:p-8">
         <div className="flex items-start justify-between">
           <span className="text-4xl">{current.icon}</span>
           <button
             type="button"
             aria-label="Skip tour"
             onClick={onClose}
-            className="text-sm font-medium text-zinc-400 transition-colors hover:text-zinc-700"
+            className="rounded-full border border-zinc-200 px-3 py-1 text-xs font-semibold text-zinc-500 transition-colors hover:border-zinc-300 hover:text-zinc-800"
           >
-            Skip
+            Skip tour
           </button>
         </div>
 
-        <h2 className="mt-4 text-2xl font-black text-zinc-900">{current.title}</h2>
+        <h2 className="mt-4 text-xl font-black text-zinc-900 sm:text-2xl">{current.title}</h2>
         <p className="mt-2 text-sm leading-relaxed text-zinc-600">{current.body}</p>
 
         <div className="mt-6 flex items-center gap-1.5">
