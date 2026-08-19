@@ -66,15 +66,20 @@ export async function PATCH(req: Request, ctx: RouteContext<"/api/schedules/[id]
     let googleEventId = schedule.googleEventId;
     let lastSyncedAt = schedule.lastSyncedAt;
 
-    if (schedule.googleEventId) {
-      const ok = await updateWeeklyEvent(userId, schedule.googleEventId, eventInput);
-      if (ok) lastSyncedAt = new Date();
-    } else {
-      const event = await createWeeklyEvent(userId, eventInput);
-      if (event) {
-        googleEventId = event.id;
-        lastSyncedAt = new Date();
+    try {
+      if (schedule.googleEventId) {
+        const ok = await updateWeeklyEvent(userId, schedule.googleEventId, eventInput);
+        if (ok) lastSyncedAt = new Date();
+      } else {
+        const event = await createWeeklyEvent(userId, eventInput);
+        if (event) {
+          googleEventId = event.id;
+          lastSyncedAt = new Date();
+        }
       }
+    } catch (err) {
+      console.error("[schedules] google sync failed on update:", err);
+      lastSyncedAt = null;
     }
 
     const updated = await prisma.schedule.update({

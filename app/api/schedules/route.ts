@@ -53,18 +53,36 @@ export async function POST(req: Request) {
     }
 
     const settings = await getOrCreateSettings(userId);
-    const event = await createWeeklyEvent(userId, {
-      courseName: normalized.data.courseName,
-      daysOfWeek: normalized.data.daysOfWeek,
-      startTime: normalized.data.startTime,
-      endTime: normalized.data.endTime,
-      room: normalized.data.room,
-      timezone: settings.timezone,
-      semesterEnd: settings.semesterEnd?.toISOString(),
-    });
 
-    if (!event) {
-      throw new ApiError(403, "Connect your Google Calendar first to add classes to your calendar.");
+    let googleError: string | null = null;
+    let eventId: string | null = null;
+    let lastSyncedAt: Date | null = new Date();
+    try {
+      const event = await createWeeklyEvent(userId, {
+        courseName: normalized.data.courseName,
+        daysOfWeek: normalized.data.daysOfWeek,
+        startTime: normalized.data.startTime,
+        endTime: normalized.data.endTime,
+        room: normalized.data.room,
+        timezone: settings.timezone,
+        semesterEnd: settings.semesterEnd?.toISOString(),
+      });
+      if (event) {
+        eventId = event.id;
+      } else {
+        googleError = "Google Calendar is not connected. Saved locally only.";
+      }
+    } catch (err) {
+      if (err instanceof ApiError) {
+        googleError = err.message;
+      } else {
+        googleError = "Saved locally, but Google Calendar sync failed. Try again later.";
+      }
+      console.error("[schedules] google sync failed:", err);
+    }
+    if (googleError) {
+      eventId = null;
+      lastSyncedAt = null;
     }
 
     const schedule = await prisma.schedule.create({
@@ -75,12 +93,16 @@ export async function POST(req: Request) {
         startTime: normalized.data.startTime,
         endTime: normalized.data.endTime,
         room: normalized.data.room,
-        googleEventId: event.id,
-        lastSyncedAt: new Date(),
+        googleEventId: eventId,
+        lastSyncedAt,
       },
     });
 
-    return NextResponse.json({ schedule: toScheduleDTO(schedule) }, { status: 201 });
+    const dto = toScheduleDTO(schedule);
+    return NextResponse.json(
+      googleError ? { schedule: dto, googleError } : { schedule: dto },
+      { status: googleError ? 201 : 201 }
+    );
   } catch (err) {
     return handleError(err);
   }

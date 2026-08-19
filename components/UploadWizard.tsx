@@ -9,7 +9,10 @@ import type { ScheduleDTO, SettingsDTO } from "@/lib/types";
 import type { ParsedCourse } from "@/lib/gemini";
 import { CourseRowEditor, type Row } from "@/components/CourseRowEditor";
 
-async function saveSchedule(row: ParsedCourse): Promise<ScheduleDTO> {
+async function saveSchedule(row: ParsedCourse): Promise<{
+  schedule: ScheduleDTO;
+  googleError?: string;
+}> {
   const res = await fetch("/api/schedules", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
@@ -17,12 +20,13 @@ async function saveSchedule(row: ParsedCourse): Promise<ScheduleDTO> {
   });
   const data = (await res.json().catch(() => null)) as {
     schedule?: ScheduleDTO;
+    googleError?: string;
     error?: string;
   } | null;
   if (!res.ok) {
     throw new Error(data?.error ?? "Could not add to Google Calendar");
   }
-  return data!.schedule!;
+  return { schedule: data!.schedule!, googleError: data?.googleError };
 }
 
 const STEPS = ["Review", "Term length", "Reminder", "Confirm"];
@@ -113,20 +117,26 @@ export default function UploadWizard({
           );
         }
       }
+      let googleError: string | null = null;
       for (const row of selected) {
-        const dto = await saveSchedule({
+        const result = await saveSchedule({
           courseName: row.courseName,
           daysOfWeek: row.daysOfWeek,
           startTime: row.startTime,
           endTime: row.endTime,
           room: row.room,
         });
-        onSaved(dto);
+        onSaved(result.schedule);
+        if (result.googleError && !googleError) googleError = result.googleError;
       }
-      toast(
-        "success",
-        `Added ${selected.length} course${selected.length > 1 ? "s" : ""} to your schedule and Google Calendar.`
-      );
+      if (googleError) {
+        toast("info", `${googleError} Your classes are saved below.`);
+      } else {
+        toast(
+          "success",
+          `Added ${selected.length} course${selected.length > 1 ? "s" : ""} to your schedule and Google Calendar.`
+        );
+      }
       onCleared();
       onClose();
     } catch (err) {

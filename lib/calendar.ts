@@ -12,6 +12,18 @@ export function isScopeError(err: unknown): boolean {
   );
 }
 
+export function isAuthError(err: unknown): boolean {
+  const e = err as {
+    response?: { status?: number };
+    status?: number;
+    code?: number;
+    message?: string;
+  };
+  if (e?.response?.status === 401 || e?.status === 401 || e?.code === 401) return true;
+  if (e?.code === 400) return true;
+  return typeof e?.message === "string" && /invalid_grant|invalid authentication credentials/i.test(e.message);
+}
+
 export async function getCalendarForUser(userId: string) {
   const account = await prisma.account.findFirst({ where: { userId } });
   if (!account?.refresh_token && !account?.access_token) return null;
@@ -22,7 +34,43 @@ export async function getCalendarForUser(userId: string) {
   client.setCredentials({
     refresh_token: account.refresh_token ?? undefined,
     access_token: account.access_token ?? undefined,
+    expiry_date: account.expires_at ? account.expires_at * 1000 : undefined,
   });
+
+  // If the stored access token is stale and a refresh token exists, the
+  // client refreshes it now (without expiry_date it would blindly reuse
+  // the expired token and Google returns 401).
+  const expired = !account.expires_at || account.expires_at * 1000 <= Date.now();
+  if (expired) {
+    if (!account.refresh_token) {
+      throw new ApiError(
+        401,
+        "Your Google Calendar connection needs to be re-authorized. Reconnect in Settings."
+      );
+    }
+    try {
+      const token = await client.getAccessToken();
+      const fresh = token?.token;
+      const newExpiry = client.credentials.expiry_date
+        ? Math.floor(client.credentials.expiry_date / 1000)
+        : null;
+      if (fresh && (fresh !== account.access_token || newExpiry !== account.expires_at)) {
+        await prisma.account.updateMany({
+          where: { userId },
+          data: { access_token: fresh, expires_at: newExpiry },
+        });
+      }
+    } catch (err) {
+      if (isAuthError(err)) {
+        throw new ApiError(
+          401,
+          "Your Google Calendar connection expired. Reconnect in Settings to keep syncing."
+        );
+      }
+      throw err;
+    }
+  }
+
   return google.calendar({ version: "v3", auth: client });
 }
 
@@ -145,6 +193,12 @@ export async function createWeeklyEvent(
         "Google Calendar permission is missing. Sign out and sign back in, and approve the calendar permission this time."
       );
     }
+    if (isAuthError(err)) {
+      throw new ApiError(
+        401,
+        "Your Google Calendar connection expired. Reconnect in Settings to keep syncing."
+      );
+    }
     throw err;
   }
 }
@@ -182,6 +236,12 @@ export async function updateWeeklyEvent(
         "Google Calendar permission is missing. Sign out and sign back in, and approve the calendar permission this time."
       );
     }
+    if (isAuthError(err)) {
+      throw new ApiError(
+        401,
+        "Your Google Calendar connection expired. Reconnect in Settings to keep syncing."
+      );
+    }
     throw err;
   }
 }
@@ -197,6 +257,12 @@ export async function deleteWeeklyEvent(userId: string, eventId: string): Promis
       throw new ApiError(
         403,
         "Google Calendar permission is missing. Sign out and sign back in, and approve the calendar permission this time."
+      );
+    }
+    if (isAuthError(err)) {
+      throw new ApiError(
+        401,
+        "Your Google Calendar connection expired. Reconnect in Settings to keep syncing."
       );
     }
     throw err;
