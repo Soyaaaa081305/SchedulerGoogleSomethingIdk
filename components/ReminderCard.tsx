@@ -78,7 +78,7 @@ export default function ReminderCard({
         });
         if (!res.ok) throw new Error("Could not save your notification subscription");
         setSubscribed(true);
-        setNotice("Reminder is active — you'll get a notification every night at 9:00 PM to double-check your classes, tasks, and due dates.");
+        setNotice("Reminder is active — you'll get a notification every night at 9:00 PM with tomorrow's classes.");
       } else {
         setSubscribed(false);
       }
@@ -138,8 +138,7 @@ export default function ReminderCard({
       </div>
 
       <p className="mt-3 text-sm text-zinc-500">
-        Every night you&apos;ll get a push notification to double-check your
-        things: today&apos;s classes, due dates, and overdue tasks.
+        Every night you&apos;ll get a push notification listing your next day&apos;s classes — so nothing sneaks up on you.
       </p>
 
       {busy && (

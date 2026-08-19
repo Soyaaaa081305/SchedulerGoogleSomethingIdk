@@ -12,8 +12,6 @@ import type { ScheduleDTO, SettingsDTO } from "@/lib/types";
 
 export interface TodaySummary {
   classesToday: string[];
-  tasksDueToday: number;
-  overdueTasks: number;
 }
 
 export interface InitialData {
@@ -90,20 +88,12 @@ export default function Dashboard({ user, initial }: { user: UserInfo; initial: 
           : "Free day — rest well.",
     },
     {
-      label: "Due today",
-      value: initial.summary.tasksDueToday,
+      label: "Classes in the app",
+      value: schedules.length,
       detail:
-        initial.summary.tasksDueToday > 0
-          ? "Check the Tasks & BBL page."
-          : "Nothing due today.",
-    },
-    {
-      label: "Overdue",
-      value: initial.summary.overdueTasks,
-      detail:
-        initial.summary.overdueTasks > 0
-          ? "Finish these asap."
-          : "All clear.",
+        schedules.length > 0
+          ? "All synced to Google Calendar."
+          : "Upload your timetable to get started.",
     },
   ];
 
@@ -143,15 +133,13 @@ export default function Dashboard({ user, initial }: { user: UserInfo; initial: 
               : "No classes today."}
           </h2>
           <p className="mt-1 text-sm text-[#f5c6cd]">
-            {initial.summary.tasksDueToday > 0
-              ? `${initial.summary.tasksDueToday} thing${
-                  initial.summary.tasksDueToday > 1 ? "s" : ""
-                } due today — don't forget.`
-              : "Nothing due today. Still, double-check your tasks before sleeping."}
+            {initial.summary.classesToday.length > 0
+              ? "Don't forget your classes — and double-check your schedule before sleeping."
+              : "Free day. Still, review tomorrow's schedule before you sleep."}
           </p>
         </section>
 
-        <section className="grid grid-cols-1 gap-4 sm:grid-cols-3">
+        <section className="grid grid-cols-1 gap-4 sm:grid-cols-2">
           {stats.map((s) => (
             <div key={s.label} className="rounded-2xl border border-zinc-200 bg-white p-4 shadow-sm">
               <p className="text-xs font-semibold uppercase tracking-wide text-zinc-400">

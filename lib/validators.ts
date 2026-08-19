@@ -72,20 +72,6 @@ export function findOverlap(
   return null;
 }
 
-export const taskCreateSchema = z.object({
-  title: z.string().trim().min(1).max(500),
-  dueDate: z.string().datetime({ offset: true }).nullable().optional(),
-  source: z.enum(["manual", "bbl"]).default("manual"),
-});
-
-export const taskUpdateSchema = z
-  .object({
-    title: z.string().trim().min(1).max(500).optional(),
-    dueDate: z.string().datetime({ offset: true }).nullable().optional(),
-    completed: z.boolean().optional(),
-  })
-  .strict();
-
 export const settingsPatchSchema = z
   .object({
     reminderEnabled: z.boolean().optional(),

@@ -47,3 +47,12 @@ next-env.d.ts
 /prisma/dev.db*
 /.agents/
 skills-lock.json
+
+# next.js dev agent notes
+AGENTS.md
+
+# editor/agent config
+.claude/
+.windsurf/
+CLAUDE.md
+skills-lock.json

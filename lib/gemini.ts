@@ -9,11 +9,6 @@ export interface ParsedCourse {
   room: string | null;
 }
 
-export interface ParsedTask {
-  title: string;
-  dueDate: string | null;
-}
-
 const MODEL = "gemini-3.6-flash";
 
 const genAI = () => new GoogleGenerativeAI(process.env.GEMINI_API_KEY ?? "");
@@ -41,18 +36,6 @@ Rules:
 - If a class meets on multiple days, list all of them.
 - Return JSON only, in exactly this shape:
 {"courses":[{"courseName":"string","daysOfWeek":["MONDAY"],"startTime":"HH:MM","endTime":"HH:MM","room":"string or null"}]}`;
-
-const TASKS_PROMPT = `You are an assistant that extracts assignments and tasks with their due dates from pasted text (usually from a learning management system like Blackboard).
-
-From the text, extract every assignment, quiz, exam, project, or task that has a due date or deadline. For each one return:
-- title: a short clear title of the task (e.g. "Quiz 3", "Essay: The American Revolution").
-- dueDate: the due date in "YYYY-MM-DD" format if one can be determined from the text, otherwise null.
-
-Rules:
-- Do not invent deadlines — if no date is mentioned, use null.
-- If there are no tasks at all, return an empty array.
-- Return JSON only, in exactly this shape:
-{"tasks":[{"title":"string","dueDate":"YYYY-MM-DD or null"}]}`;
 
 async function generateJson<T>(parts: (string | Part)[]): Promise<T> {
   const key = process.env.GEMINI_API_KEY;
@@ -107,27 +90,4 @@ export async function extractScheduleFromImage(mimeType: string, base64Data: str
   }
 
   return courses;
-}
-
-export async function extractTasksFromText(text: string): Promise<ParsedTask[]> {
-  const raw = await generateJson<{ tasks?: Array<Record<string, unknown>> }>([
-    { text: `${TASKS_PROMPT}\n\nHere is the text to analyze:\n"""${text}"""` },
-  ]);
-
-  const tasks: ParsedTask[] = [];
-  for (const t of raw.tasks ?? []) {
-    const title = typeof t.title === "string" ? t.title.trim() : "";
-    if (!title) continue;
-
-    let dueDate: string | null = null;
-    if (typeof t.dueDate === "string" && t.dueDate.trim()) {
-      const parsed = new Date(t.dueDate.trim());
-      if (!Number.isNaN(parsed.getTime())) {
-        dueDate = parsed.toISOString().slice(0, 10);
-      }
-    }
-
-    tasks.push({ title, dueDate });
-  }
-  return tasks;
 }

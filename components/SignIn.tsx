@@ -24,7 +24,7 @@ export default function SignIn() {
           </p>
           <p className="mt-4 text-sm text-zinc-500">
             Upload your class schedule, let AI read it, and sync it into Google
-            Calendar. Never forget a class or due date again.
+            Calendar. Never miss a class again.
           </p>
           <button
             type="button"

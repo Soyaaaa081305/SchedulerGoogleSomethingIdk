@@ -16,7 +16,7 @@ const geistMono = Geist_Mono({
 export const metadata: Metadata = {
   title: "Scheduler — AI School Schedule Assistant",
   description:
-    "Upload your class schedule, let AI read it, and sync it into Google Calendar with a nightly reminder to double-check your tasks and due dates.",
+    "Upload your class schedule, let AI read it, and sync it into Google Calendar with a nightly reminder so you never miss a class.",
   icons: {
     icon: "/favicon-32.png",
     apple: "/apple-touch-icon.png",

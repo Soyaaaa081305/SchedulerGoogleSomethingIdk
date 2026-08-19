@@ -304,8 +304,12 @@ export default function UploadCard({ onSaved }: { onSaved: (s: ScheduleDTO) => v
               onClick={() => {
                 setRows([]);
                 setNotice(null);
+                setError(null);
+                setLoading(false);
+                setSaving(false);
                 if (previewUrl) URL.revokeObjectURL(previewUrl);
                 setPreviewUrl(null);
+                if (inputRef.current) inputRef.current.value = "";
               }}
             >
               Clear
