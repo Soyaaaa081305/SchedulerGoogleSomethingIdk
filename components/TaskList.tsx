@@ -2,6 +2,7 @@
 
 import { useMemo, useState } from "react";
 import { Card, Button, ErrorBanner } from "@/components/ui";
+import { useToast } from "@/components/ToastProvider";
 import type { TaskDTO } from "@/lib/types";
 
 function todayStr(): string {
@@ -19,6 +20,7 @@ export default function TaskList({
   const [title, setTitle] = useState("");
   const [dueDate, setDueDate] = useState("");
   const [error, setError] = useState<string | null>(null);
+  const { toast } = useToast();
 
   const today = todayStr();
 
@@ -72,6 +74,7 @@ export default function TaskList({
       const res = await fetch(`/api/tasks/${t.id}`, { method: "DELETE" });
       if (!res.ok) return;
       onChange(tasks.filter((x) => x.id !== t.id));
+      toast("success", `Task "${t.title}" deleted.`);
     } catch {
       /* ignore */
     }
@@ -98,8 +101,11 @@ export default function TaskList({
       onChange([data!.task!, ...tasks]);
       setTitle("");
       setDueDate("");
+      toast("success", `Task "${trimmed}" added.`);
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Could not add task");
+      const message = err instanceof Error ? err.message : "Could not add task";
+      setError(message);
+      toast("error", message);
     }
   };
 

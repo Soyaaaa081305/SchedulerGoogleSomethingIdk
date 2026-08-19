@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { Card, Button, Toggle, ErrorBanner, NoticeBanner, Spinner } from "@/components/ui";
+import { useToast } from "@/components/ToastProvider";
 import { subscribePush } from "@/lib/pushClient";
 import type { SettingsDTO } from "@/lib/types";
 
@@ -28,6 +29,7 @@ export default function ReminderCard({
   const [testing, setTesting] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [notice, setNotice] = useState<string | null>(null);
+  const { toast } = useToast();
 
   useEffect(() => {
     let cancelled = false;
@@ -89,6 +91,7 @@ export default function ReminderCard({
       const data = (await res.json()) as { settings: SettingsDTO };
       if (!res.ok) throw new Error("Could not save settings");
       onSettingsChange(data.settings);
+      toast(enabled ? "success" : "info", enabled ? "Daily reminder enabled." : "Daily reminder disabled.");
     } catch (err) {
       setError(err instanceof Error ? err.message : "Could not update reminder settings");
     } finally {
@@ -109,6 +112,7 @@ export default function ReminderCard({
       } | null;
       if (!res.ok) throw new Error(data?.error ?? "Could not send test reminder");
       setNotice(`Test reminder sent. It said: "${data?.message?.body ?? "check your stuff today"}"`);
+      toast("success", "Test reminder sent.");
     } catch (err) {
       setError(err instanceof Error ? err.message : "Could not send test reminder");
     } finally {

@@ -41,6 +41,37 @@ export function normalizeSchedule(
   };
 }
 
+export interface OverlapCandidate {
+  id?: string;
+  courseName: string;
+  daysOfWeek: Day[];
+  startTime: string;
+  endTime: string;
+}
+
+export function findOverlap(
+  existing: Array<{ id?: string; courseName: string; daysOfWeek: string; startTime: string; endTime: string }>,
+  candidate: OverlapCandidate
+): { courseName: string; day: string; startTime: string; endTime: string } | null {
+  for (const e of existing) {
+    if (e.id && e.id === candidate.id) continue;
+    const sharedDays = e.daysOfWeek
+      .split(",")
+      .filter((d): d is Day => candidate.daysOfWeek.includes(d as Day));
+    if (sharedDays.length === 0) continue;
+    const overlaps = candidate.startTime < e.endTime && candidate.endTime > e.startTime;
+    if (overlaps) {
+      return {
+        courseName: e.courseName,
+        day: sharedDays[0],
+        startTime: e.startTime,
+        endTime: e.endTime,
+      };
+    }
+  }
+  return null;
+}
+
 export const taskCreateSchema = z.object({
   title: z.string().trim().min(1).max(500),
   dueDate: z.string().datetime({ offset: true }).nullable().optional(),

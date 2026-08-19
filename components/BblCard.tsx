@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { Card, Button, ErrorBanner, NoticeBanner, Spinner } from "@/components/ui";
+import { useToast } from "@/components/ToastProvider";
 import type { TaskDTO } from "@/lib/types";
 import type { ParsedTask } from "@/lib/gemini";
 
@@ -10,6 +11,7 @@ interface PreviewRow extends ParsedTask {
 }
 
 export default function BblCard({ onSaved }: { onSaved: (t: TaskDTO) => void }) {
+  const { toast } = useToast();
   const [text, setText] = useState("");
   const [loading, setLoading] = useState(false);
   const [saving, setSaving] = useState(false);
@@ -77,8 +79,11 @@ export default function BblCard({ onSaved }: { onSaved: (t: TaskDTO) => void }) 
       }
       setRows((prev) => prev.filter((r) => !savedIds.has(`${r.title}|${r.dueDate}`)));
       setNotice(`Saved ${savedIds.size} task${savedIds.size > 1 ? "s" : ""}. They'll appear in your nightly reminder.`);
+      toast("success", `Saved ${savedIds.size} task${savedIds.size > 1 ? "s" : ""}.`);
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Could not save tasks");
+      const message = err instanceof Error ? err.message : "Could not save tasks";
+      setError(message);
+      toast("error", message);
     } finally {
       setSaving(false);
     }

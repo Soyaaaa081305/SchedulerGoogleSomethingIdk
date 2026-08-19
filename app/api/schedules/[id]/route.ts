@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { requireUser, handleError, ApiError } from "@/lib/api";
-import { scheduleUpdateSchema, normalizeSchedule } from "@/lib/validators";
+import { scheduleUpdateSchema, normalizeSchedule, findOverlap } from "@/lib/validators";
 import { createWeeklyEvent, deleteWeeklyEvent, updateWeeklyEvent } from "@/lib/calendar";
 import { getOrCreateSettings } from "@/lib/reminder";
 import { toScheduleDTO } from "@/lib/types";
@@ -33,6 +33,24 @@ export async function PATCH(req: Request, ctx: RouteContext<"/api/schedules/[id]
     };
     const normalized = normalizeSchedule(merged);
     if (!normalized.ok) throw new ApiError(400, normalized.error);
+
+    const existing = await prisma.schedule.findMany({
+      where: { userId },
+      select: { id: true, courseName: true, daysOfWeek: true, startTime: true, endTime: true },
+    });
+    const conflict = findOverlap(existing, {
+      id: schedule.id,
+      courseName: normalized.data.courseName,
+      daysOfWeek: normalized.data.daysOfWeek,
+      startTime: normalized.data.startTime,
+      endTime: normalized.data.endTime,
+    });
+    if (conflict) {
+      throw new ApiError(
+        409,
+        `"${normalized.data.courseName}" overlaps with "${conflict.courseName}" on ${conflict.day} (${conflict.startTime}–${conflict.endTime}). Please fix the time first.`
+      );
+    }
 
     const settings = await getOrCreateSettings(userId);
     const eventInput = {

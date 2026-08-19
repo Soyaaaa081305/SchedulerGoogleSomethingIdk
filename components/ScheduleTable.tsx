@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { Card, Button, DayPicker, DayBadges, ErrorBanner } from "@/components/ui";
+import { useToast } from "@/components/ToastProvider";
 import type { ScheduleDTO } from "@/lib/types";
 import type { Day } from "@/lib/days";
 import { formatTime12h } from "@/lib/days";
@@ -17,6 +18,7 @@ export default function ScheduleTable({
   const [draft, setDraft] = useState<ScheduleDTO | null>(null);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const { toast } = useToast();
 
   const startEdit = (s: ScheduleDTO) => {
     setEditingId(s.id);
@@ -46,8 +48,11 @@ export default function ScheduleTable({
       if (!res.ok) throw new Error(data?.error ?? "Could not update schedule");
       onChange(schedules.map((s) => (s.id === draft.id ? data!.schedule! : s)));
       setEditingId(null);
+      toast("success", `"${draft.courseName}" updated.`);
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Update failed");
+      const message = err instanceof Error ? err.message : "Update failed";
+      setError(message);
+      toast("error", message);
     } finally {
       setBusy(false);
     }
@@ -61,8 +66,11 @@ export default function ScheduleTable({
       const res = await fetch(`/api/schedules/${s.id}`, { method: "DELETE" });
       if (!res.ok) throw new Error("Could not delete schedule");
       onChange(schedules.filter((x) => x.id !== s.id));
+      toast("success", `"${s.courseName}" removed.`);
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Delete failed");
+      const message = err instanceof Error ? err.message : "Delete failed";
+      setError(message);
+      toast("error", message);
     } finally {
       setBusy(false);
     }

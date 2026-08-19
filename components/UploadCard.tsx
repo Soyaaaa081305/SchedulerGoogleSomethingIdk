@@ -12,6 +12,7 @@ import {
 import type { ScheduleDTO } from "@/lib/types";
 import type { ParsedCourse } from "@/lib/gemini";
 import type { Day } from "@/lib/days";
+import { useToast } from "@/components/ToastProvider";
 
 interface Row extends ParsedCourse {
   id: string;
@@ -112,6 +113,7 @@ function CourseRowEditor({
 }
 
 export default function UploadCard({ onSaved }: { onSaved: (s: ScheduleDTO) => void }) {
+  const { toast } = useToast();
   const inputRef = useRef<HTMLInputElement>(null);
   const [dragging, setDragging] = useState(false);
   const [loading, setLoading] = useState(false);
@@ -171,9 +173,12 @@ export default function UploadCard({ onSaved }: { onSaved: (s: ScheduleDTO) => v
         onSaved(dto);
       }
       setRows((prev) => prev.filter((r) => !savedIds.has(r.id)));
-      setNotice(`Added ${savedIds.size} course${savedIds.size > 1 ? "s" : ""} to Google Calendar.`);
+      setNotice(`Added ${savedIds.size} course${savedIds.size > 1 ? "s" : ""} to your schedule and Google Calendar.`);
+      toast("success", `Added ${savedIds.size} course${savedIds.size > 1 ? "s" : ""} to your schedule and Google Calendar.`);
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Could not add to Google Calendar");
+      const message = err instanceof Error ? err.message : "Could not add to Google Calendar";
+      setError(message);
+      toast("error", message);
     } finally {
       setSaving(false);
     }

@@ -37,6 +37,68 @@ export interface CreateEventInput {
   location?: string;
 }
 
+function wallClock(instantMs: number, timeZone: string): { y: number; mo: number; d: number; h: number; mi: number } {
+  const parts = Object.fromEntries(
+    new Intl.DateTimeFormat("en-US", {
+      timeZone,
+      year: "numeric",
+      month: "2-digit",
+      day: "2-digit",
+      hour: "2-digit",
+      minute: "2-digit",
+      hour12: false,
+    })
+      .formatToParts(instantMs)
+      .filter((p) => p.type !== "literal")
+      .map((p) => [p.type, p.value])
+  );
+  return {
+    y: Number(parts.year),
+    mo: Number(parts.month),
+    d: Number(parts.day),
+    h: Number(parts.hour) % 24,
+    mi: Number(parts.minute),
+  };
+}
+
+function epochInTz(date: string, time: string, timeZone: string): number {
+  const [y, mo, d] = date.split("-").map(Number);
+  const [h, mi] = time.split(":").map(Number);
+  const asUTC = Date.UTC(y, mo - 1, d, h, mi, 0);
+  const w = wallClock(asUTC, timeZone);
+  const wallUTC = Date.UTC(w.y, w.mo - 1, w.d, w.h, w.mi, 0);
+  const offset = wallUTC - asUTC;
+  return asUTC - offset;
+}
+
+export async function findExistingEvent(
+  calendar: ReturnType<typeof getCalendarForUser> extends Promise<infer T> ? NonNullable<T> : never,
+  courseName: string,
+  startTime: string,
+  date: string,
+  timezone: string
+): Promise<string | null> {
+  try {
+    const res = await calendar.events.list({
+      calendarId: "primary",
+      timeMin: `${date}T00:00:00`,
+      timeMax: `${date}T23:59:59`,
+      singleEvents: false,
+      maxResults: 250,
+    });
+    const target = epochInTz(date, startTime, timezone);
+    for (const ev of res.data.items ?? []) {
+      if (ev.status === "cancelled") continue;
+      if (ev.summary?.trim().toLowerCase() !== courseName.trim().toLowerCase()) continue;
+      const s = ev.start?.dateTime;
+      if (s && Date.parse(s) === target) return ev.id ?? null;
+    }
+    return null;
+  } catch {
+    return null;
+  }
+}
+
 export async function createWeeklyEvent(
   userId: string,
   input: CreateEventInput
@@ -45,6 +107,9 @@ export async function createWeeklyEvent(
   if (!calendar) return null;
 
   const date = nextDateForDay(input.daysOfWeek[0], input.timezone);
+  const existingId = await findExistingEvent(calendar, input.courseName, input.startTime, date, input.timezone);
+  if (existingId) return { id: existingId };
+
   try {
     const res = await calendar.events.insert({
       calendarId: "primary",
