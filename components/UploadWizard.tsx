@@ -146,20 +146,21 @@ export default function UploadWizard({
   return (
     <Modal open onClose={syncing ? () => {} : onClose} size="lg">
       <div style={{ display: "flex", flex: 1, minHeight: 0, flexDirection: "column" }}>
-        <div style={{ flexShrink: 0, padding: "0.75rem 1rem 0" }} className="sm:p-6 sm:pb-0 sm:px-8">
-          <div className="flex items-center gap-1.5">
+        <div style={{ flexShrink: 0, padding: "1.25rem 1rem 0" }} className="sm:p-6 sm:pb-0 sm:px-8">
+          <p className="text-xs font-semibold uppercase tracking-wide text-zinc-400">
+            Step {step + 1} of {STEPS.length}
+          </p>
+          <h2 className="mt-1 text-lg font-black text-zinc-900">{STEPS[step]}</h2>
+          <div className="mt-3 flex items-center gap-1.5">
             {STEPS.map((label, i) => (
               <span
                 key={label}
-                className={`h-1.5 flex-1 rounded-full transition-colors ${
+                className={`h-1.5 flex-1 rounded-full transition-all duration-300 ${
                   i <= step ? "bg-[#c8102e]" : "bg-zinc-200"
                 }`}
               />
             ))}
           </div>
-          <p className="mt-2 text-xs font-semibold uppercase tracking-wide text-zinc-400">
-            Step {step + 1} of {STEPS.length} — {STEPS[step]}
-          </p>
         </div>
 
         <div style={{ flex: 1, minHeight: 0, overflowY: "auto", padding: "1rem" }} className="sm:p-6 sm:px-8">
@@ -283,14 +284,22 @@ export default function UploadWizard({
             <h2 className="text-xl font-black text-zinc-900">Almost there</h2>
             <ul className="mt-4 space-y-2 text-sm text-zinc-700">
               <li className="flex items-start gap-2">
-                <span className="mt-0.5 text-[#c8102e]">✓</span>
+                <span className="mt-0.5 flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-[#fdeeef] text-[#c8102e]">
+                  <svg width="10" height="10" viewBox="0 0 24 24" fill="none" strokeWidth={3.5} stroke="currentColor" aria-hidden="true">
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
+                  </svg>
+                </span>
                 <span>
                   <strong>{selected.length}</strong> course{selected.length > 1 ? "s" : ""} will
                   be added to Google Calendar as weekly recurring events
                 </span>
               </li>
               <li className="flex items-start gap-2">
-                <span className="mt-0.5 text-[#c8102e]">✓</span>
+                <span className="mt-0.5 flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-[#fdeeef] text-[#c8102e]">
+                  <svg width="10" height="10" viewBox="0 0 24 24" fill="none" strokeWidth={3.5} stroke="currentColor" aria-hidden="true">
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
+                  </svg>
+                </span>
                 <span>
                   Classes repeat until{" "}
                   <strong>
@@ -305,7 +314,11 @@ export default function UploadWizard({
                 </span>
               </li>
               <li className="flex items-start gap-2">
-                <span className="mt-0.5 text-[#c8102e]">✓</span>
+                <span className="mt-0.5 flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-[#fdeeef] text-[#c8102e]">
+                  <svg width="10" height="10" viewBox="0 0 24 24" fill="none" strokeWidth={3.5} stroke="currentColor" aria-hidden="true">
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
+                  </svg>
+                </span>
                 <span>
                   Daily reminder: <strong>{reminderOn ? "ON" : "OFF"}</strong>
                   {reminderOn && " (your browser will ask for notification permission)"}

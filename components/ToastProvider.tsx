@@ -36,7 +36,7 @@ const styles: Record<ToastType, string> = {
 };
 
 const icon: Record<ToastType, string> = {
-  success: "✓",
+  success: "check",
   error: "!",
   info: "i",
 };
@@ -46,6 +46,17 @@ const iconColor: Record<ToastType, string> = {
   error: "bg-[#c8102e] text-white",
   info: "bg-zinc-600 text-white",
 };
+
+function ToastIcon({ type }: { type: ToastType }) {
+  if (type === "success") {
+    return (
+      <svg width="12" height="12" viewBox="0 0 24 24" fill="none" strokeWidth={3.5} stroke="currentColor" aria-hidden="true">
+        <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
+      </svg>
+    );
+  }
+  return <>{icon[type]}</>;
+}
 
 export function ToastProvider({ children }: { children: ReactNode }) {
   const [toasts, setToasts] = useState<Toast[]>([]);
@@ -77,7 +88,7 @@ export function ToastProvider({ children }: { children: ReactNode }) {
             <span
               className={`flex h-5 w-5 shrink-0 items-center justify-center rounded-full text-xs font-black ${iconColor[t.type]}`}
             >
-              {icon[t.type]}
+              <ToastIcon type={t.type} />
             </span>
             <p className="text-sm leading-snug">{t.message}</p>
             <button
@@ -86,7 +97,9 @@ export function ToastProvider({ children }: { children: ReactNode }) {
               onClick={() => dismiss(t.id)}
               className="ml-auto shrink-0 text-zinc-400 transition-colors hover:text-zinc-700"
             >
-              ✕
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" strokeWidth={2.5} stroke="currentColor" aria-hidden="true">
+                <path strokeLinecap="round" d="M6 6l12 12M18 6L6 18" />
+              </svg>
             </button>
           </div>
         ))}

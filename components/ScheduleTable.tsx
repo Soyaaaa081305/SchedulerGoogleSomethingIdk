@@ -168,12 +168,17 @@ export default function ScheduleTable({
               <div className="flex flex-wrap items-center gap-3">
                 <DayBadges days={s.daysOfWeek} />
                 <span
-                  className={`rounded-full px-2 py-0.5 text-xs font-medium ${
+                  className={`flex items-center gap-1 rounded-full px-2 py-0.5 text-xs font-medium ${
                     s.synced ? "bg-green-100 text-green-700" : "bg-amber-100 text-amber-700"
                   }`}
                   title={s.synced ? "Synced to Google Calendar" : "Not synced"}
                 >
-                  {s.synced ? "✓ synced" : "unsynced"}
+                  {s.synced ? (
+                    <svg width="10" height="10" viewBox="0 0 24 24" fill="none" strokeWidth={3.5} stroke="currentColor" aria-hidden="true">
+                      <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
+                    </svg>
+                  ) : null}
+                  {s.synced ? "synced" : "unsynced"}
                 </span>
                 <Button variant="secondary" onClick={() => startEdit(s)} aria-label={`Edit ${s.courseName}`}>
                   Edit

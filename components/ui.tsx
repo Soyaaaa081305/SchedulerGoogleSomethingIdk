@@ -32,10 +32,11 @@ export function Spinner({ label }: { label?: string }) {
 type ButtonVariant = "primary" | "secondary" | "danger" | "ghost";
 
 const buttonStyles: Record<ButtonVariant, string> = {
-  primary: "bg-[#c8102e] text-white hover:bg-[#a50d26] disabled:cursor-not-allowed disabled:opacity-50",
+  primary:
+    "bg-[#c8102e] text-white shadow-sm hover:bg-[#a50d26] hover:shadow-md active:scale-[0.99] disabled:cursor-not-allowed disabled:opacity-50",
   secondary:
-    "border border-zinc-300 bg-white text-zinc-800 hover:bg-zinc-50",
-  danger: "bg-[#8a0a1e] text-white hover:bg-[#6d0818]",
+    "border border-zinc-200 bg-white text-zinc-700 hover:border-zinc-300 hover:bg-zinc-50 active:scale-[0.99]",
+  danger: "bg-[#8a0a1e] text-white hover:bg-[#6d0818] active:scale-[0.99]",
   ghost: "text-[#c8102e] hover:bg-[#fdeeef]",
 };
 
@@ -179,6 +180,7 @@ export function Modal({
   return (
     <div
       onClick={onClose}
+      className="fade-in"
       style={{
         position: "fixed",
         inset: 0,
@@ -186,7 +188,9 @@ export function Modal({
         display: "flex",
         alignItems: "center",
         justifyContent: "center",
-        background: "rgba(0,0,0,0.5)",
+        background: "rgba(24, 24, 27, 0.55)",
+        backdropFilter: "blur(4px)",
+        WebkitBackdropFilter: "blur(4px)",
         padding: "1rem",
       }}
     >
@@ -195,6 +199,7 @@ export function Modal({
         aria-modal="true"
         aria-label="Dialog"
         onClick={(e) => e.stopPropagation()}
+        className="modal-pop"
         style={{
           position: "relative",
           width: "100%",
@@ -203,9 +208,9 @@ export function Modal({
           display: "flex",
           flexDirection: "column",
           overflow: "hidden",
-          borderRadius: "1rem",
+          borderRadius: "1.25rem",
           background: "white",
-          boxShadow: "0 25px 50px -12px rgba(0,0,0,0.25)",
+          boxShadow: "0 25px 60px -12px rgba(0,0,0,0.35)",
         }}
       >
         <button
@@ -220,18 +225,27 @@ export function Modal({
             width: "2rem",
             height: "2rem",
             borderRadius: "9999px",
-            border: "1px solid #e5e7eb",
-            background: "white",
+            border: "1px solid #e4e4e7",
+            background: "rgba(255,255,255,0.9)",
             display: "flex",
             alignItems: "center",
             justifyContent: "center",
-            fontSize: "1rem",
             color: "#71717a",
             cursor: "pointer",
-            lineHeight: 1,
+            transition: "background 0.15s ease, color 0.15s ease",
+          }}
+          onMouseEnter={(e) => {
+            e.currentTarget.style.background = "#fdeeef";
+            e.currentTarget.style.color = "#c8102e";
+          }}
+          onMouseLeave={(e) => {
+            e.currentTarget.style.background = "rgba(255,255,255,0.9)";
+            e.currentTarget.style.color = "#71717a";
           }}
         >
-          ✕
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" strokeWidth={2.5} stroke="currentColor" aria-hidden="true">
+            <path strokeLinecap="round" d="M6 6l12 12M18 6L6 18" />
+          </svg>
         </button>
         {children}
       </div>

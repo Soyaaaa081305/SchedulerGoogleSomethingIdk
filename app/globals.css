@@ -37,3 +37,39 @@ select:focus-visible {
 .toast-in {
   animation: toast-in 0.2s ease-out;
 }
+
+@keyframes modal-pop {
+  from {
+    opacity: 0;
+    transform: translateY(12px) scale(0.98);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+@keyframes fade-in {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+.modal-pop {
+  animation: modal-pop 0.22s ease-out;
+}
+
+.fade-in {
+  animation: fade-in 0.18s ease-out;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .modal-pop,
+  .fade-in,
+  .toast-in {
+    animation: none;
+  }
+}
