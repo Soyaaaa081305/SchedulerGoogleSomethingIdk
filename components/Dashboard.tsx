@@ -5,8 +5,8 @@ import { signIn } from "next-auth/react";
 import Header, { type UserInfo } from "@/components/Header";
 import UploadCard from "@/components/UploadCard";
 import ScheduleTable from "@/components/ScheduleTable";
-import ReminderCard from "@/components/ReminderCard";
-import { Button, Spinner } from "@/components/ui";
+import SettingsSection from "@/components/SettingsSection";
+import OnboardingModal, { useOnboarding } from "@/components/OnboardingModal";
 import { useToast } from "@/components/ToastProvider";
 import type { ScheduleDTO, SettingsDTO } from "@/lib/types";
 
@@ -37,6 +37,7 @@ export default function Dashboard({ user, initial }: { user: UserInfo; initial: 
   const [needsReconnect, setNeedsReconnect] = useState(initial.needsReconnect);
   const [lastSync, setLastSync] = useState(initial.lastSync);
   const [cleaning, setCleaning] = useState(false);
+  const onboarding = useOnboarding();
   const { toast } = useToast();
 
   useEffect(() => {
@@ -99,7 +100,7 @@ export default function Dashboard({ user, initial }: { user: UserInfo; initial: 
 
   return (
     <div className="flex min-h-screen flex-col bg-[#f6f6f7]">
-      <Header user={user} connected={connected} />
+      <Header user={user} connected={connected} onHowItWorks={onboarding.reopen} />
 
       {!connected && (
         <div className="border-b border-[#f3c8cf] bg-[#fdeeef]">
@@ -153,31 +154,20 @@ export default function Dashboard({ user, initial }: { user: UserInfo; initial: 
           ))}
         </section>
 
-        <UploadCard onSaved={onSaved} />
+        <UploadCard
+          onSaved={onSaved}
+          settings={settings}
+          onSettingsChange={setSettings}
+        />
         <ScheduleTable schedules={schedules} onChange={setSchedules} />
 
-        {connected && (
-          <section className="flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-zinc-200 bg-white p-4 shadow-sm">
-            <div>
-              <p className="text-sm font-medium text-zinc-900">
-                Calendar cleanup
-              </p>
-              <p className="text-xs text-zinc-500">
-                Removes leftover class events in Google Calendar that are no
-                longer in your schedule here. Personal events are never touched.
-              </p>
-            </div>
-            {cleaning ? (
-              <Spinner label="Cleaning…" />
-            ) : (
-              <Button variant="secondary" onClick={() => void cleanupCalendar()}>
-                Clean up
-              </Button>
-            )}
-          </section>
-        )}
-
-        <ReminderCard settings={settings} onSettingsChange={setSettings} />
+        <SettingsSection
+          settings={settings}
+          onSettingsChange={setSettings}
+          connected={connected}
+          cleaning={cleaning}
+          onCleanup={() => void cleanupCalendar()}
+        />
 
         {lastSync && (
           <p className="text-center text-xs text-zinc-400">
@@ -191,6 +181,8 @@ export default function Dashboard({ user, initial }: { user: UserInfo; initial: 
           more makakalimutin.
         </footer>
       </main>
+
+      <OnboardingModal open={onboarding.open} onClose={onboarding.close} />
     </div>
   );
 }

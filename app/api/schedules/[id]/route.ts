@@ -60,7 +60,7 @@ export async function PATCH(req: Request, ctx: RouteContext<"/api/schedules/[id]
       endTime: normalized.data.endTime,
       room: normalized.data.room,
       timezone: settings.timezone,
-      semesterEnd: parsed.data.semesterEnd,
+      semesterEnd: settings.semesterEnd?.toISOString(),
     };
 
     let googleEventId = schedule.googleEventId;

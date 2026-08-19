@@ -142,3 +142,35 @@ export function Toggle({
     </button>
   );
 }
+
+export function Modal({
+  open,
+  onClose,
+  children,
+  size = "md",
+}: {
+  open: boolean;
+  onClose: () => void;
+  children: ReactNode;
+  size?: "md" | "lg";
+}) {
+  if (!open) return null;
+  return (
+    <div className="fixed inset-0 z-40 flex items-center justify-center p-4">
+      <div
+        className="absolute inset-0 bg-zinc-900/50 backdrop-blur-sm"
+        onClick={onClose}
+        aria-hidden="true"
+      />
+      <div
+        role="dialog"
+        aria-modal="true"
+        className={`relative w-full ${
+          size === "lg" ? "max-w-2xl" : "max-w-lg"
+        } rounded-2xl bg-white shadow-2xl toast-in`}
+      >
+        {children}
+      </div>
+    </div>
+  );
+}

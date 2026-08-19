@@ -60,7 +60,7 @@ export async function POST(req: Request) {
       endTime: normalized.data.endTime,
       room: normalized.data.room,
       timezone: settings.timezone,
-      semesterEnd: normalized.data.semesterEnd,
+      semesterEnd: settings.semesterEnd?.toISOString(),
     });
 
     if (!event) {

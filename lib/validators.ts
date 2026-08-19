@@ -80,6 +80,11 @@ export const settingsPatchSchema = z
       .regex(/^([01]\d|2[0-3]):[0-5]\d$/, "Invalid time")
       .optional(),
     timezone: z.string().min(1).optional(),
+    semesterEnd: z
+      .string()
+      .datetime({ offset: true })
+      .nullable()
+      .optional(),
   })
   .strict();
 

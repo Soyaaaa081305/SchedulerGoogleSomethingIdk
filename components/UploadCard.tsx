@@ -3,7 +3,6 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import {
   Card,
-  Button,
   DayPicker,
   ErrorBanner,
   NoticeBanner,
@@ -13,8 +12,10 @@ import type { ScheduleDTO } from "@/lib/types";
 import type { ParsedCourse } from "@/lib/gemini";
 import type { Day } from "@/lib/days";
 import { useToast } from "@/components/ToastProvider";
+import UploadWizard from "@/components/UploadWizard";
+import type { SettingsDTO } from "@/lib/types";
 
-interface Row extends ParsedCourse {
+export interface Row extends ParsedCourse {
   id: string;
   selected: boolean;
 }
@@ -31,23 +32,7 @@ async function uploadImage(file: File): Promise<ParsedCourse[]> {
   return data.courses;
 }
 
-async function saveSchedule(row: ParsedCourse): Promise<ScheduleDTO> {
-  const res = await fetch("/api/schedules", {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify(row),
-  });
-  const data = (await res.json().catch(() => null)) as {
-    schedule?: ScheduleDTO;
-    error?: string;
-  } | null;
-  if (!res.ok) {
-    throw new Error(data?.error ?? "Could not add to Google Calendar");
-  }
-  return data!.schedule!;
-}
-
-function CourseRowEditor({
+export function CourseRowEditor({
   row,
   onChange,
 }: {
@@ -112,12 +97,19 @@ function CourseRowEditor({
   );
 }
 
-export default function UploadCard({ onSaved }: { onSaved: (s: ScheduleDTO) => void }) {
+export default function UploadCard({
+  onSaved,
+  settings,
+  onSettingsChange,
+}: {
+  onSaved: (s: ScheduleDTO) => void;
+  settings: SettingsDTO | null;
+  onSettingsChange: (s: SettingsDTO) => void;
+}) {
   const { toast } = useToast();
   const inputRef = useRef<HTMLInputElement>(null);
   const [dragging, setDragging] = useState(false);
   const [loading, setLoading] = useState(false);
-  const [saving, setSaving] = useState(false);
   const [rows, setRows] = useState<Row[]>([]);
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -129,60 +121,46 @@ export default function UploadCard({ onSaved }: { onSaved: (s: ScheduleDTO) => v
     };
   }, [previewUrl]);
 
-  const handleFile = useCallback(async (file: File) => {
-    setError(null);
+  const clear = () => {
+    setRows([]);
     setNotice(null);
-    if (!file.type.startsWith("image/")) {
-      setError("That file is not an image. Upload a photo or screenshot of your schedule.");
-      return;
-    }
-    if (previewUrl) URL.revokeObjectURL(previewUrl);
-    setPreviewUrl(URL.createObjectURL(file));
-    setLoading(true);
-    try {
-      const courses = await uploadImage(file);
-      if (courses.length === 0) {
-        setError("No courses were detected in that image. Try a clearer photo of your timetable.");
-      } else {
-        setRows(courses.map((c, i) => ({ ...c, id: `new-${i}-${Date.now()}`, selected: true })));
-        setNotice(`Found ${courses.length} course${courses.length > 1 ? "s" : ""}. Review the details below, then add them to your Google Calendar.`);
-      }
-    } catch (err) {
-      setError(err instanceof Error ? err.message : "Upload failed");
-    } finally {
-      setLoading(false);
-    }
-  }, [previewUrl]);
-
-  const saveSelected = async () => {
-    const selected = rows.filter((r) => r.selected);
-    if (selected.length === 0) return;
-    setSaving(true);
     setError(null);
-    const savedIds = new Set<string>();
-    try {
-      for (const row of selected) {
-        const dto = await saveSchedule({
-          courseName: row.courseName,
-          daysOfWeek: row.daysOfWeek,
-          startTime: row.startTime,
-          endTime: row.endTime,
-          room: row.room,
-        });
-        savedIds.add(row.id);
-        onSaved(dto);
-      }
-      setRows((prev) => prev.filter((r) => !savedIds.has(r.id)));
-      setNotice(`Added ${savedIds.size} course${savedIds.size > 1 ? "s" : ""} to your schedule and Google Calendar.`);
-      toast("success", `Added ${savedIds.size} course${savedIds.size > 1 ? "s" : ""} to your schedule and Google Calendar.`);
-    } catch (err) {
-      const message = err instanceof Error ? err.message : "Could not add to Google Calendar";
-      setError(message);
-      toast("error", message);
-    } finally {
-      setSaving(false);
-    }
+    setLoading(false);
+    if (previewUrl) URL.revokeObjectURL(previewUrl);
+    setPreviewUrl(null);
+    if (inputRef.current) inputRef.current.value = "";
   };
+
+  const handleFile = useCallback(
+    async (file: File) => {
+      setError(null);
+      setNotice(null);
+      if (!file.type.startsWith("image/")) {
+        setError("That file is not an image. Upload a photo or screenshot of your schedule.");
+        return;
+      }
+      if (previewUrl) URL.revokeObjectURL(previewUrl);
+      setPreviewUrl(URL.createObjectURL(file));
+      setLoading(true);
+      try {
+        const courses = await uploadImage(file);
+        if (courses.length === 0) {
+          setError("No courses were detected in that image. Try a clearer photo of your timetable.");
+        } else {
+          setRows(courses.map((c, i) => ({ ...c, id: `new-${i}-${Date.now()}`, selected: true })));
+          setNotice(
+            `Found ${courses.length} course${courses.length > 1 ? "s" : ""}. Review them in the next steps, then they'll sync to your Google Calendar.`
+          );
+          toast("info", "Classes detected — review and sync in a few steps.");
+        }
+      } catch (err) {
+        setError(err instanceof Error ? err.message : "Upload failed");
+      } finally {
+        setLoading(false);
+      }
+    },
+    [previewUrl, toast]
+  );
 
   return (
     <Card title="Upload your schedule">
@@ -276,46 +254,23 @@ export default function UploadCard({ onSaved }: { onSaved: (s: ScheduleDTO) => v
       )}
 
       {rows.length > 0 && (
-        <div className="mt-4 space-y-3">
+        <div className="mt-4">
           <p className="text-sm text-zinc-600">
-            Review what the AI read — edit anything that looks wrong, tick the
-            classes you want, then add them to your calendar.
+            Your classes were read — the review screen is open. Edit anything
+            that looks wrong, then confirm.
           </p>
-          {rows.map((row) => (
-            <CourseRowEditor
-              key={row.id}
-              row={row}
-              onChange={(updated) =>
-                setRows((prev) => prev.map((r) => (r.id === updated.id ? updated : r)))
-              }
-            />
-          ))}
-          <div className="flex flex-wrap items-center gap-3">
-            <Button
-              onClick={() => void saveSelected()}
-              disabled={saving || rows.every((r) => !r.selected)}
-            >
-              {saving
-                ? "Adding…"
-                : `Add ${rows.filter((r) => r.selected).length} to Google Calendar`}
-            </Button>
-            <Button
-              variant="ghost"
-              onClick={() => {
-                setRows([]);
-                setNotice(null);
-                setError(null);
-                setLoading(false);
-                setSaving(false);
-                if (previewUrl) URL.revokeObjectURL(previewUrl);
-                setPreviewUrl(null);
-                if (inputRef.current) inputRef.current.value = "";
-              }}
-            >
-              Clear
-            </Button>
-          </div>
         </div>
+      )}
+
+      {rows.length > 0 && (
+        <UploadWizard
+          rows={rows}
+          onClose={clear}
+          onSaved={onSaved}
+          settings={settings}
+          onSettingsChange={onSettingsChange}
+          onCleared={clear}
+        />
       )}
     </Card>
   );

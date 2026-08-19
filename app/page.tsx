@@ -33,6 +33,7 @@ export default async function Home() {
       reminderEnabled: settings.reminderEnabled,
       reminderTime: settings.reminderTime,
       timezone,
+      semesterEnd: settings.semesterEnd ? settings.semesterEnd.toISOString() : null,
     },
     connected: cal.connected,
     needsReconnect: cal.needsReconnect,

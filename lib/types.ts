@@ -14,6 +14,7 @@ export interface SettingsDTO {
   reminderEnabled: boolean;
   reminderTime: string;
   timezone: string;
+  semesterEnd: string | null;
 }
 
 export function toScheduleDTO(
