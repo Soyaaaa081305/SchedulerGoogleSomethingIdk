@@ -3,8 +3,31 @@ import Google from "next-auth/providers/google";
 import { PrismaAdapter } from "@auth/prisma-adapter";
 import { prisma } from "@/lib/prisma";
 
+const adapter = PrismaAdapter(prisma);
+
+adapter.createUser = async (data) => {
+  return prisma.user.upsert({
+    where: { email: data.email ?? "" },
+    create: data as never,
+    update: data as never,
+  });
+};
+
+adapter.linkAccount = async (data) => {
+  await prisma.account.upsert({
+    where: {
+      provider_providerAccountId: {
+        provider: data.provider,
+        providerAccountId: data.providerAccountId,
+      },
+    },
+    create: data as never,
+    update: data as never,
+  });
+};
+
 export const { handlers, auth, signIn, signOut } = NextAuth({
-  adapter: PrismaAdapter(prisma),
+  adapter: adapter as never,
   session: { strategy: "jwt" },
   providers: [
     Google({
