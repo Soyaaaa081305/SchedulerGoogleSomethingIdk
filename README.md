@@ -17,11 +17,17 @@ Just sign in with Google and go. No installation, no fees.
 
 ## Screenshots
 
-![Your schedule in the app](public/screenshots/app-schedule.png)
+<p align="center">
+  <img src="public/screenshots/app-schedule.jpg" width="75%" alt="Your schedule in the app" />
+</p>
 
-![Uploading and reviewing your timetable](public/screenshots/app-upload.png)
+<p align="center">
+  <img src="public/screenshots/app-upload.jpg" width="75%" alt="Uploading and reviewing your timetable" />
+</p>
 
-![The synced classes on Google Calendar](public/screenshots/phone-google-calendar.jpg)
+<p align="center">
+  <img src="public/screenshots/phone-google-calendar.jpg" width="300" alt="The synced classes on Google Calendar" />
+</p>
 
 ## Why this is free
 
