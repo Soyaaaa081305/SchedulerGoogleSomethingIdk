@@ -66,7 +66,7 @@ export default function OnboardingModal({
 
   return (
     <Modal open={open} onClose={onClose}>
-      <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain p-5 sm:p-8">
+      <div style={{ flex: 1, minHeight: 0, overflowY: "auto", padding: "1.25rem" }} className="sm:p-8">
         <div className="flex items-start justify-between">
           <span className="text-4xl">{current.icon}</span>
           <button

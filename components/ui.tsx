@@ -207,6 +207,31 @@ export function Modal({
           boxShadow: "0 25px 50px -12px rgba(0,0,0,0.25)",
         }}
       >
+        <button
+          type="button"
+          aria-label="Close"
+          onClick={onClose}
+          style={{
+            position: "absolute",
+            top: "0.75rem",
+            right: "0.75rem",
+            zIndex: 10,
+            width: "2rem",
+            height: "2rem",
+            borderRadius: "9999px",
+            border: "1px solid #e5e7eb",
+            background: "white",
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            fontSize: "1rem",
+            color: "#71717a",
+            cursor: "pointer",
+            lineHeight: 1,
+          }}
+        >
+          ✕
+        </button>
         {children}
       </div>
     </div>
