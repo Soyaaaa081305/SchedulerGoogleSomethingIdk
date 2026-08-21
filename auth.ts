@@ -31,21 +31,28 @@ adapter.linkAccount = async (data) => {
   });
 };
 
+const hasGoogle = Boolean(process.env.GOOGLE_CLIENT_ID && process.env.GOOGLE_CLIENT_SECRET);
+
 export const { handlers, auth, signIn, signOut } = NextAuth({
   adapter: adapter as never,
   session: { strategy: "jwt" },
-  providers: [
-    Google({
-      clientId: process.env.GOOGLE_CLIENT_ID ?? "",
-      clientSecret: process.env.GOOGLE_CLIENT_SECRET ?? "",
-      authorization: {
-        params: {
-          scope: "openid email profile https://www.googleapis.com/auth/calendar.events",
-          access_type: "offline",
-        },
-      },
-    }),
-  ],
+  pages: {
+    error: "/auth-error",
+  },
+  providers: hasGoogle
+    ? [
+        Google({
+          clientId: process.env.GOOGLE_CLIENT_ID!,
+          clientSecret: process.env.GOOGLE_CLIENT_SECRET!,
+          authorization: {
+            params: {
+              scope: "openid email profile https://www.googleapis.com/auth/calendar.events",
+              access_type: "offline",
+            },
+          },
+        }),
+      ]
+    : [],
   callbacks: {
     async session({ session, token }) {
       if (session.user && token.sub) {
