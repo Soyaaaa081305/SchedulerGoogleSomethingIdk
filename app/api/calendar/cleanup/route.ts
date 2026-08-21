@@ -7,16 +7,6 @@ export const dynamic = "force-dynamic";
 
 const WEEKLY_RRULE = /RRULE:FREQ=WEEKLY/;
 
-const CLASS_PATTERNS = [
-  /^(CCS|STS|GE|HUMASS|NSTP|PE|MATH|PHYS|CHEM|BIO|ENG|FIL|SOCIO|HIST|ECON|POLSCI|PSYCHO|PATHFIT|REMVISION)/i,
-  /\b\d{4}\b/,
-  /\b(sitio|room|rm|bldg|building)\b/i,
-];
-
-function looksLikeClassName(summary: string): boolean {
-  return CLASS_PATTERNS.some((p) => p.test(summary));
-}
-
 export async function POST(req: Request) {
   try {
     const userId = await requireUser();
@@ -73,29 +63,12 @@ export async function POST(req: Request) {
         );
 
         if (aggressive) {
-          if (hasMarker) {
+          if (hasMarker || (hasWeeklyRRule && isKnownClass) || hasWeeklyRRule) {
             candidates++;
             await calendar.events
               .delete({ calendarId: "primary", eventId: ev.id })
               .catch(() => {});
             deleted++;
-            continue;
-          }
-          if (hasWeeklyRRule && isKnownClass) {
-            candidates++;
-            await calendar.events
-              .delete({ calendarId: "primary", eventId: ev.id })
-              .catch(() => {});
-            deleted++;
-            continue;
-          }
-          if (hasWeeklyRRule && looksLikeClassName(ev.summary ?? "")) {
-            candidates++;
-            await calendar.events
-              .delete({ calendarId: "primary", eventId: ev.id })
-              .catch(() => {});
-            deleted++;
-            continue;
           }
           continue;
         }
