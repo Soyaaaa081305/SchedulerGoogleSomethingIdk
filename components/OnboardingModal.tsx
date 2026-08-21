@@ -107,7 +107,7 @@ export default function OnboardingModal({
         <p className="mt-5 text-xs font-semibold uppercase tracking-wide text-zinc-400">
           Step {step + 1} of {STEPS.length}
         </p>
-        <h2 className="mt-1 text-xl font-black text-zinc-900 sm:text-2xl">{current.title}</h2>
+        <h2 className="mt-1 text-lg font-black text-zinc-900">{current.title}</h2>
         <p className="mt-2 text-sm leading-relaxed text-zinc-600">{current.body}</p>
 
         <div className="mt-6 flex items-center gap-1.5">

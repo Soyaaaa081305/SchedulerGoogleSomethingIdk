@@ -176,7 +176,7 @@ export default function UploadWizard({
         <div style={{ flex: 1, minHeight: 0, overflowY: "auto", padding: "1rem" }} className="sm:p-6 sm:px-8">
         {step === 0 && (
           <div className="mt-4">
-            <h2 className="text-xl font-black text-zinc-900">Review your classes</h2>
+            <h2 className="text-lg font-black text-zinc-900">Review your classes</h2>
             <p className="mt-1 text-sm text-zinc-600">
               The AI read {rowsState.length} course{rowsState.length > 1 ? "s" : ""}. Expand
               any row to edit the details, and untick anything you don&apos;t
@@ -200,7 +200,7 @@ export default function UploadWizard({
 
         {step === 1 && (
           <div className="mt-4">
-            <h2 className="text-xl font-black text-zinc-900">How long is your term?</h2>
+            <h2 className="text-lg font-black text-zinc-900">How long is your term?</h2>
             <p className="mt-1 text-sm text-zinc-600">
               Your classes repeat weekly and stop when the term ends. Mapúa MCL
               runs three ~14-week trimesters per year — 3 months is the default.
@@ -258,7 +258,7 @@ export default function UploadWizard({
 
         {step === 2 && (
           <div className="mt-4">
-            <h2 className="text-xl font-black text-zinc-900">Nightly reminder</h2>
+            <h2 className="text-lg font-black text-zinc-900">Nightly reminder</h2>
             <p className="mt-1 text-sm text-zinc-600">
               Get a push notification at 9:00 PM with tomorrow&apos;s classes.
               Your browser will ask for permission.
@@ -291,7 +291,7 @@ export default function UploadWizard({
 
         {step === 3 && (
           <div className="mt-4">
-            <h2 className="text-xl font-black text-zinc-900">Almost there</h2>
+            <h2 className="text-lg font-black text-zinc-900">Almost there</h2>
             <ul className="mt-4 space-y-2 text-sm text-zinc-700">
               <li className="flex items-start gap-2">
                 <span className="mt-0.5 flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-[#fdeeef] text-[#c8102e]">

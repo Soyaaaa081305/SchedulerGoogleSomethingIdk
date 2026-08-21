@@ -40,10 +40,10 @@ export default function Header({ user, connected }: { user: UserInfo; connected:
             className="h-9 w-9 rounded-lg border border-zinc-200 bg-white object-contain"
           />
           <div>
-            <h1 className="text-base font-black leading-tight text-zinc-900">
+            <h1 className="text-lg font-black leading-tight text-zinc-900">
               Scheduler
             </h1>
-            <p className="text-[11px] leading-tight text-zinc-500">
+            <p className="text-xs leading-tight text-zinc-500">
               Mapúa Malayan Colleges Laguna
             </p>
           </div>
@@ -55,20 +55,6 @@ export default function Header({ user, connected }: { user: UserInfo; connected:
         </nav>
 
         <div className="flex items-center gap-3">
-          <div
-            className="flex items-center gap-2 rounded-full bg-zinc-100 p-2"
-            title={connected ? "Google Calendar connected" : "Google Calendar not connected"}
-            role="status"
-            aria-label={connected ? "Google Calendar connected" : "Google Calendar not connected"}
-          >
-            <span
-              aria-hidden="true"
-              className={`block h-2 w-2 rounded-full ${
-                connected ? "bg-emerald-500" : "bg-zinc-400"
-              }`}
-            />
-          </div>
-
           {user.image ? (
             // eslint-disable-next-line @next/next/no-img-element
             <img

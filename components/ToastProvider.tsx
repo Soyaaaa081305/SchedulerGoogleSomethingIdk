@@ -86,7 +86,7 @@ export function ToastProvider({ children }: { children: ReactNode }) {
             className={`pointer-events-auto flex w-full max-w-sm items-start gap-3 rounded-xl border p-3 shadow-lg shadow-zinc-900/10 toast-in ${styles[t.type]}`}
           >
             <span
-              className={`flex h-5 w-5 shrink-0 items-center justify-center rounded-full text-xs font-black ${iconColor[t.type]}`}
+              className={`flex h-5 w-5 shrink-0 items-center justify-center rounded-full text-xs font-semibold ${iconColor[t.type]}`}
             >
               <ToastIcon type={t.type} />
             </span>

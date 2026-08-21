@@ -12,7 +12,7 @@ export const BRAND = {
 export function Card({ title, children }: { title: string; children: ReactNode }) {
   return (
     <section className="rounded-2xl border border-zinc-200 bg-white p-5 shadow-sm">
-      <h2 className="mb-4 text-sm font-bold uppercase tracking-wide text-[#c8102e]">
+      <h2 className="mb-4 text-xs font-semibold uppercase tracking-wide text-[#c8102e]">
         {title}
       </h2>
       {children}

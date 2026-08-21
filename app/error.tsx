@@ -21,7 +21,7 @@ export default function GlobalError({
             <path strokeLinecap="round" strokeLinejoin="round" d="M12 9v3.75m9-.75a9 9 0 11-18 0 9 9 0 0118 0zm-9 3.75h.008v.008H12v-.008z" />
           </svg>
         </div>
-        <h2 className="text-lg font-bold text-zinc-900">Something went wrong</h2>
+        <h2 className="text-lg font-black text-zinc-900">Something went wrong</h2>
         <p className="mt-2 text-sm text-zinc-500">
           An unexpected error occurred. Please try again.
         </p>

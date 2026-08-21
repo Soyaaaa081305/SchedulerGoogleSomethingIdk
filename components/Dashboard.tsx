@@ -72,7 +72,7 @@ export default function Dashboard({ user, initial }: { user: UserInfo; initial: 
           <p className="text-sm font-medium text-[#f5c6cd]">
             {greeting()}, {firstName || "classmate"}.
           </p>
-          <h2 className="mt-1 text-xl font-black sm:text-2xl">
+          <h2 className="mt-1 text-lg font-black">
             {todayList.length > 0
               ? `${todayList.length} class${todayList.length > 1 ? "es" : ""} today`
               : "No classes today."}

@@ -55,7 +55,7 @@ export default function SettingsPage({
       <main className="mx-auto w-full max-w-5xl flex-1 space-y-6 px-4 py-6 pb-16">
         <div className="flex flex-wrap items-end justify-between gap-3">
           <div>
-            <h2 className="text-xl font-black text-zinc-900">Settings</h2>
+            <h2 className="text-lg font-black text-zinc-900">Settings</h2>
             <p className="text-sm text-zinc-500">
               Reminder, term length, and calendar maintenance.
             </p>

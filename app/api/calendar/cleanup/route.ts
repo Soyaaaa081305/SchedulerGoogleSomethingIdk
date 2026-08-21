@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { requireUser, handleError } from "@/lib/api";
-import { getCalendarForUser, isAppEvent } from "@/lib/calendar";
+import { getCalendarForUser } from "@/lib/calendar";
 
 export const dynamic = "force-dynamic";
 
@@ -13,19 +13,21 @@ export async function POST() {
     const calendar = await getCalendarForUser(userId);
     if (!calendar) {
       return NextResponse.json(
-        { error: "Google Calendar is not connected. Connect it first." },
+        { error: "Google Calendar is not connected. Reconnect in Settings." },
         { status: 403 }
       );
     }
 
-    const sixMonthsAgo = new Date();
-    sixMonthsAgo.setMonth(sixMonthsAgo.getMonth() - 6);
+    const twoYearsAgo = new Date();
+    twoYearsAgo.setFullYear(twoYearsAgo.getFullYear() - 2);
 
     const mySchedules = await prisma.schedule.findMany({
       where: { userId },
       select: { googleEventId: true, courseName: true },
     });
-    const linkedIds = new Set(mySchedules.map((s) => s.googleEventId).filter(Boolean));
+    const linkedIds = new Set(
+      mySchedules.map((s) => s.googleEventId).filter(Boolean)
+    );
     const myCourseNames = new Set(
       mySchedules.map((s) => s.courseName.trim().toLowerCase())
     );
@@ -37,7 +39,7 @@ export async function POST() {
     do {
       const res = await calendar.events.list({
         calendarId: "primary",
-        timeMin: sixMonthsAgo.toISOString(),
+        timeMin: twoYearsAgo.toISOString(),
         singleEvents: false,
         maxResults: 250,
         pageToken,
@@ -45,16 +47,24 @@ export async function POST() {
 
       for (const ev of res.data.items ?? []) {
         if (linkedIds.has(ev.id ?? "")) continue;
-        const rrule = ev.recurrence?.[0];
-        const hasMarker = isAppEvent(ev);
-        const isMyClass =
-          myCourseNames.has((ev.summary ?? "").trim().toLowerCase()) &&
-          rrule &&
-          WEEKLY_RRULE.test(rrule);
-        if (!hasMarker && !isMyClass) continue;
         if (!ev.id) continue;
+
+        const rrule = ev.recurrence?.[0] ?? "";
+        const hasWeeklyRRule = WEEKLY_RRULE.test(rrule);
+
+        const hasMarker =
+          ev.description?.includes("Created by Scheduler") ?? false;
+
+        const isKnownClass = myCourseNames.has(
+          (ev.summary ?? "").trim().toLowerCase()
+        );
+
+        if (!hasMarker && !(isKnownClass && hasWeeklyRRule)) continue;
+
         candidates++;
-        await calendar.events.delete({ calendarId: "primary", eventId: ev.id }).catch(() => {});
+        await calendar.events
+          .delete({ calendarId: "primary", eventId: ev.id })
+          .catch(() => {});
         deleted++;
       }
 

@@ -45,7 +45,7 @@ export async function getCalendarForUser(userId: string) {
     if (!account.refresh_token) {
       throw new ApiError(
         401,
-        "Your Google Calendar connection needs to be re-authorized. Reconnect in Settings."
+        "Google Calendar access expired. Sign out and sign back in with Google, or click Reconnect in Settings to restore sync."
       );
     }
     try {
@@ -64,7 +64,7 @@ export async function getCalendarForUser(userId: string) {
       if (isAuthError(err)) {
         throw new ApiError(
           401,
-          "Your Google Calendar connection expired. Reconnect in Settings to keep syncing."
+          "Google Calendar access expired. Sign out and sign back in with Google, or click Reconnect in Settings to restore sync."
         );
       }
       throw err;

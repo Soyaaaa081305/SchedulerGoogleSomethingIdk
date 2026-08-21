@@ -111,13 +111,13 @@ export default function SignIn() {
               <h1 className="text-lg font-black leading-tight text-zinc-900">
                 Scheduler
               </h1>
-              <p className="text-[11px] font-medium uppercase tracking-wide text-zinc-400">
+              <p className="text-xs font-medium uppercase tracking-wide text-zinc-400">
                 Mapúa MCL
               </p>
             </div>
           </div>
 
-          <h2 className="mt-5 text-xl font-bold text-zinc-900">
+          <h2 className="mt-5 text-lg font-black text-zinc-900">
             Your classes, synced.
           </h2>
           <p className="mt-1.5 text-sm leading-relaxed text-zinc-500">
@@ -160,7 +160,7 @@ export default function SignIn() {
               <span className="mx-auto flex h-12 w-12 items-center justify-center rounded-full bg-emerald-500 shadow-sm">
                 <CheckIcon />
               </span>
-              <h3 className="mt-3 text-base font-bold text-zinc-900">
+              <h3 className="mt-3 text-lg font-black text-zinc-900">
                 Request ready
               </h3>
               <p className="mt-1.5 text-sm leading-relaxed text-zinc-600">

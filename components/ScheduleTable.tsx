@@ -100,19 +100,7 @@ export default function ScheduleTable({
 
   if (schedules.length === 0) {
     return (
-<Card title="Your schedule">
-      {schedules.length > 0 && (
-        <div className="mb-4 flex items-center justify-end">
-          <Button
-            variant="danger"
-            onClick={() => setDeletingAll(true)}
-            disabled={busy}
-            aria-label="Delete all classes"
-          >
-            {busy ? "Deleting…" : "Delete all"}
-          </Button>
-        </div>
-      )}
+      <Card title="Your schedule">
         <p className="text-sm text-zinc-500">
           No classes yet. Upload your timetable above, or add classes once
           they&apos;re extracted.
@@ -128,6 +116,16 @@ export default function ScheduleTable({
           <ErrorBanner message={error} />
         </div>
       )}
+      <div className="mb-4 flex items-center justify-end">
+        <Button
+          variant="danger"
+          onClick={() => setDeletingAll(true)}
+          disabled={busy}
+          aria-label="Delete all classes"
+        >
+          {busy ? "Deleting…" : "Delete all"}
+        </Button>
+      </div>
       <div className="space-y-3">
         {schedules.map((s) =>
           editingId === s.id && draft ? (

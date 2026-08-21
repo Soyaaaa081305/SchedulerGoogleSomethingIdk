@@ -17,25 +17,31 @@ function ErrorContent() {
             <path strokeLinecap="round" strokeLinejoin="round" d="M12 9v3.75m9-.75a9 9 0 11-18 0 9 9 0 0118 0zm-9 3.75h.008v.008H12v-.008z" />
           </svg>
         </div>
-        <h2 className="text-lg font-bold text-zinc-900">
+        <h2 className="text-lg font-black text-zinc-900">
           {error === "Configuration"
             ? "Sign-in is temporarily unavailable"
-            : "Something went wrong"}
+            : "Sign-in failed"}
         </h2>
         <p className="mt-2 text-sm leading-relaxed text-zinc-500">
           {error === "Configuration"
-            ? "The auth service couldn't initialize. This usually fixes itself on refresh. Try again in a moment."
-            : "There was a problem signing you in. Please try again."}
+            ? "The auth service is starting up. This usually fixes itself on refresh — try again in a moment."
+            : "Google sign-in hit an error. This can happen when the connection is stale or permissions are missing."}
         </p>
         {error && (
           <p className="mt-2 font-mono text-xs text-zinc-400">Error: {error}</p>
         )}
-        <Link
-          href="/"
-          className="mt-6 inline-block rounded-xl bg-[#c8102e] px-5 py-2.5 text-sm font-semibold text-white shadow-sm transition-all hover:bg-[#a50d26] hover:shadow-md"
-        >
-          Back to Scheduler
-        </Link>
+        <div className="mt-6 flex flex-col gap-2">
+          <Link
+            href="/"
+            className="inline-block rounded-xl bg-[#c8102e] px-5 py-2.5 text-sm font-semibold text-white shadow-sm transition-all hover:bg-[#a50d26] hover:shadow-md"
+          >
+            Back to Scheduler
+          </Link>
+          <p className="text-xs leading-relaxed text-zinc-400">
+            If this keeps happening, sign out and sign back in with Google, or
+            reconnect your calendar in Settings.
+          </p>
+        </div>
       </div>
     </div>
   );
