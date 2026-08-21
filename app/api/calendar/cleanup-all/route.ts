@@ -24,38 +24,40 @@ export async function POST() {
       mySchedules.map((s) => s.googleEventId).filter(Boolean)
     );
 
-    const oneYearAgo = new Date();
-    oneYearAgo.setFullYear(oneYearAgo.getFullYear() - 1);
+    const calList = await calendar.calendarList.list();
+    const calendars = calList.data.items ?? [];
+    const calIds = calendars.map((c) => c.id).filter(Boolean) as string[];
 
-    let pageToken: string | undefined;
-    let candidates = 0;
-    let deleted = 0;
+    let totalDeleted = 0;
+    let totalCandidates = 0;
 
-    do {
-      const res = await calendar.events.list({
-        calendarId: "primary",
-        timeMin: oneYearAgo.toISOString(),
-        singleEvents: false,
-        maxResults: 250,
-        pageToken,
-      });
+    for (const calId of calIds) {
+      let pageToken: string | undefined;
+      do {
+        const res = await calendar.events.list({
+          calendarId: calId,
+          singleEvents: false,
+          maxResults: 250,
+          pageToken,
+        });
 
-      for (const ev of res.data.items ?? []) {
-        if (!ev.id) continue;
-        if (linkedIds.has(ev.id)) continue;
+        for (const ev of res.data.items ?? []) {
+          if (!ev.id) continue;
+          if (linkedIds.has(ev.id)) continue;
 
-        candidates++;
-        const result = await calendar.events
-          .delete({ calendarId: "primary", eventId: ev.id })
-          .then(() => true)
-          .catch(() => false);
-        if (result) deleted++;
-      }
+          totalCandidates++;
+          const result = await calendar.events
+            .delete({ calendarId: calId, eventId: ev.id })
+            .then(() => true)
+            .catch(() => false);
+          if (result) totalDeleted++;
+        }
 
-      pageToken = res.data.nextPageToken ?? undefined;
-    } while (pageToken);
+        pageToken = res.data.nextPageToken ?? undefined;
+      } while (pageToken);
+    }
 
-    return NextResponse.json({ ok: true, deleted, candidates });
+    return NextResponse.json({ ok: true, deleted: totalDeleted, candidates: totalCandidates, calendars: calIds });
   } catch (err) {
     return handleError(err);
   }
