@@ -19,6 +19,13 @@ adapter.createUser = async (data) => {
 };
 
 adapter.linkAccount = async (data) => {
+  const updateData: Record<string, unknown> = { ...data };
+  // Don't overwrite an existing refresh_token with null — Google only
+  // returns a new refresh_token on the first consent; subsequent logins
+  // omit it, which would clobber the stored token.
+  if (!updateData.refresh_token) {
+    delete updateData.refresh_token;
+  }
   await prisma.account.upsert({
     where: {
       provider_providerAccountId: {
@@ -27,7 +34,7 @@ adapter.linkAccount = async (data) => {
       },
     },
     create: data as never,
-    update: data as never,
+    update: updateData as never,
   });
 };
 
@@ -48,6 +55,7 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
             params: {
               scope: "openid email profile https://www.googleapis.com/auth/calendar.events",
               access_type: "offline",
+              prompt: "consent",
             },
           },
         }),
