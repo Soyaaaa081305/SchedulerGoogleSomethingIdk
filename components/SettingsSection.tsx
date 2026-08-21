@@ -42,6 +42,7 @@ export default function SettingsSection({
   cleaning,
   onCleanup,
   onCleanupAggressive,
+  onCleanupAll,
 }: {
   settings: SettingsDTO | null;
   onSettingsChange: (s: SettingsDTO) => void;
@@ -49,6 +50,7 @@ export default function SettingsSection({
   cleaning: boolean;
   onCleanup: () => void;
   onCleanupAggressive: () => void;
+  onCleanupAll: () => void;
 }) {
   const [subscribed, setSubscribed] = useState<boolean | null>(null);
   const [busy, setBusy] = useState(false);
@@ -58,6 +60,7 @@ export default function SettingsSection({
   const [notice, setNotice] = useState<string | null>(null);
   const [confirmingCleanup, setConfirmingCleanup] = useState(false);
   const [confirmingAggressive, setConfirmingAggressive] = useState(false);
+  const [confirmingNuclear, setConfirmingNuclear] = useState(false);
   const { toast } = useToast();
 
   useEffect(() => {
@@ -339,6 +342,22 @@ const isSelected = (m: number) => {
                 </Button>
               )}
             </div>
+            <div className="flex flex-wrap items-center justify-between gap-3 border-t border-zinc-100 pt-4">
+              <div>
+                <p className="text-sm font-medium text-zinc-900">Delete everything from calendar</p>
+                <p className="text-sm text-zinc-500">
+                  Removes every event on your Google Calendar except your
+                  currently synced classes. Your schedule here is not affected.
+                </p>
+              </div>
+              {cleaning ? (
+                <Spinner label="Deleting…" />
+              ) : (
+                <Button variant="danger" onClick={() => setConfirmingNuclear(true)}>
+                  Delete everything
+                </Button>
+              )}
+            </div>
           </div>
         )}
       </div>
@@ -368,6 +387,20 @@ const isSelected = (m: number) => {
           onCleanupAggressive();
         }}
         onCancel={() => setConfirmingAggressive(false)}
+      />
+
+      <ConfirmModal
+        open={confirmingNuclear}
+        title="Delete everything from Google Calendar?"
+        body="This will remove every event on your Google Calendar — including personal events, meetings, anything. Only your currently synced Scheduler classes will remain. This can't be undone."
+        confirmLabel="Delete everything"
+        danger
+        busy={cleaning}
+        onConfirm={() => {
+          setConfirmingNuclear(false);
+          onCleanupAll();
+        }}
+        onCancel={() => setConfirmingNuclear(false)}
       />
 
       {notice && (

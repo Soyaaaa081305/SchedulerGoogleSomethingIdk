@@ -25,12 +25,12 @@ export default function SettingsPage({
   const [cleaning, setCleaning] = useState(false);
   const { toast } = useToast();
 
-  const cleanupCalendar = async (aggressive = false) => {
+  const cleanupCalendar = async (mode: "normal" | "aggressive" | "all") => {
     setCleaning(true);
     try {
-      const url = aggressive
-        ? "/api/calendar/cleanup?aggressive=1"
-        : "/api/calendar/cleanup";
+      let url = "/api/calendar/cleanup";
+      if (mode === "aggressive") url = "/api/calendar/cleanup?aggressive=1";
+      if (mode === "all") url = "/api/calendar/cleanup-all";
       const res = await fetch(url, { method: "POST" });
       const data = (await res.json().catch(() => null)) as {
         deleted?: number;
@@ -40,7 +40,7 @@ export default function SettingsPage({
       toast(
         "success",
         data!.deleted! > 0
-          ? `Removed ${data!.deleted} leftover class event${data!.deleted! > 1 ? "s" : ""} from Google Calendar.`
+          ? `Removed ${data!.deleted} event${data!.deleted! > 1 ? "s" : ""} from Google Calendar.`
           : "Nothing to clean — your calendar matches your schedule."
       );
     } catch (err) {
@@ -76,8 +76,9 @@ export default function SettingsPage({
           onSettingsChange={setSettingsState}
           connected={connected}
           cleaning={cleaning}
-          onCleanup={() => void cleanupCalendar(false)}
-          onCleanupAggressive={() => void cleanupCalendar(true)}
+          onCleanup={() => void cleanupCalendar("normal")}
+          onCleanupAggressive={() => void cleanupCalendar("aggressive")}
+          onCleanupAll={() => void cleanupCalendar("all")}
         />
 
         {lastSync && (
