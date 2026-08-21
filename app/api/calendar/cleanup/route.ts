@@ -7,20 +7,14 @@ export const dynamic = "force-dynamic";
 
 const WEEKLY_RRULE = /RRULE:FREQ=WEEKLY/;
 
-function looksLikeClassEvent(ev: {
-  summary?: string | null;
-  start?: { dateTime?: string | null; date?: string | null } | null;
-  recurrence?: string[] | null;
-}): boolean {
-  const rrule = ev.recurrence?.[0] ?? "";
-  if (!WEEKLY_RRULE.test(rrule)) return false;
+const CLASS_PATTERNS = [
+  /^(CCS|STS|GE|HUMASS|NSTP|PE|MATH|PHYS|CHEM|BIO|ENG|FIL|SOCIO|HIST|ECON|POLSCI|PSYCHO|PATHFIT|REMVISION)/i,
+  /\b\d{4}\b/,
+  /\b(sitio|room|rm|bldg|building)\b/i,
+];
 
-  const startStr = ev.start?.dateTime;
-  if (!startStr) return false;
-  const hour = new Date(startStr).getUTCHours();
-  const day = new Date(startStr).getUTCDay();
-  if (day === 0 || day === 6) return false;
-  return hour >= 6 && hour < 20;
+function looksLikeClassName(summary: string): boolean {
+  return CLASS_PATTERNS.some((p) => p.test(summary));
 }
 
 export async function POST(req: Request) {
@@ -69,19 +63,45 @@ export async function POST(req: Request) {
         if (!ev.id) continue;
 
         const rrule = ev.recurrence?.[0] ?? "";
-        if (!WEEKLY_RRULE.test(rrule)) continue;
+        const hasWeeklyRRule = WEEKLY_RRULE.test(rrule);
 
         const hasMarker =
           ev.description?.includes("Created by Scheduler") ?? false;
+
         const isKnownClass = myCourseNames.has(
           (ev.summary ?? "").trim().toLowerCase()
         );
 
         if (aggressive) {
-          if (!looksLikeClassEvent(ev)) continue;
-        } else {
-          if (!hasMarker && !isKnownClass) continue;
+          if (hasMarker) {
+            candidates++;
+            await calendar.events
+              .delete({ calendarId: "primary", eventId: ev.id })
+              .catch(() => {});
+            deleted++;
+            continue;
+          }
+          if (hasWeeklyRRule && isKnownClass) {
+            candidates++;
+            await calendar.events
+              .delete({ calendarId: "primary", eventId: ev.id })
+              .catch(() => {});
+            deleted++;
+            continue;
+          }
+          if (hasWeeklyRRule && looksLikeClassName(ev.summary ?? "")) {
+            candidates++;
+            await calendar.events
+              .delete({ calendarId: "primary", eventId: ev.id })
+              .catch(() => {});
+            deleted++;
+            continue;
+          }
+          continue;
         }
+
+        if (!hasMarker && !isKnownClass) continue;
+        if (!hasWeeklyRRule && !hasMarker) continue;
 
         candidates++;
         await calendar.events
