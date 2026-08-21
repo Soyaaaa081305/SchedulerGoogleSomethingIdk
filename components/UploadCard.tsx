@@ -188,7 +188,7 @@ export default function UploadCard({
             <img
               src={previewUrl}
               alt="Your uploaded schedule"
-              className="max-h-64 w-auto rounded-lg border border-zinc-200 shadow-sm"
+              className="max-h-96 w-auto rounded-lg border border-zinc-200 shadow-sm"
             />
             <p className="text-sm font-medium text-zinc-800">
               Looking good! Click or paste another image to replace it.

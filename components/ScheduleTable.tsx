@@ -20,6 +20,7 @@ export default function ScheduleTable({
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [deleting, setDeleting] = useState<ScheduleDTO | null>(null);
+  const [deletingAll, setDeletingAll] = useState(false);
   const { toast } = useToast();
 
   const startEdit = (s: ScheduleDTO) => {
@@ -78,9 +79,40 @@ export default function ScheduleTable({
     }
   };
 
+  const removeAll = async () => {
+    setDeletingAll(false);
+    setBusy(true);
+    setError(null);
+    try {
+      const res = await fetch("/api/schedules/all", { method: "DELETE" });
+      const data = (await res.json().catch(() => null)) as { deleted?: number } | null;
+      if (!res.ok) throw new Error("Could not delete classes");
+      onChange([]);
+      toast("success", `Deleted ${data?.deleted ?? 0} class${(data?.deleted ?? 0) !== 1 ? "es" : ""} and their Google Calendar events.`);
+    } catch (err) {
+      const message = err instanceof Error ? err.message : "Delete all failed";
+      setError(message);
+      toast("error", message);
+    } finally {
+      setBusy(false);
+    }
+  };
+
   if (schedules.length === 0) {
     return (
-      <Card title="Your schedule">
+<Card title="Your schedule">
+      {schedules.length > 0 && (
+        <div className="mb-4 flex items-center justify-end">
+          <Button
+            variant="danger"
+            onClick={() => setDeletingAll(true)}
+            disabled={busy}
+            aria-label="Delete all classes"
+          >
+            {busy ? "Deleting…" : "Delete all"}
+          </Button>
+        </div>
+      )}
         <p className="text-sm text-zinc-500">
           No classes yet. Upload your timetable above, or add classes once
           they&apos;re extracted.
@@ -205,6 +237,17 @@ export default function ScheduleTable({
         busy={busy}
         onConfirm={() => deleting && void remove(deleting)}
         onCancel={() => setDeleting(null)}
+      />
+
+      <ConfirmModal
+        open={deletingAll}
+        title="Delete all classes?"
+        body={`All ${schedules.length} class${schedules.length !== 1 ? "es" : ""} will be removed from your schedule and from Google Calendar. This can't be undone.`}
+        confirmLabel="Delete all classes"
+        danger
+        busy={busy}
+        onConfirm={() => void removeAll()}
+        onCancel={() => setDeletingAll(false)}
       />
     </Card>
   );
