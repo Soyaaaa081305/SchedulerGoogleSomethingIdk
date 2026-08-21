@@ -116,16 +116,6 @@ export default function ScheduleTable({
           <ErrorBanner message={error} />
         </div>
       )}
-      <div className="mb-4 flex items-center justify-end">
-        <Button
-          variant="danger"
-          onClick={() => setDeletingAll(true)}
-          disabled={busy}
-          aria-label="Delete all classes"
-        >
-          {busy ? "Deleting…" : "Delete all"}
-        </Button>
-      </div>
       <div className="space-y-3">
         {schedules.map((s) =>
           editingId === s.id && draft ? (
@@ -220,6 +210,17 @@ export default function ScheduleTable({
             </div>
           )
         )}
+      </div>
+
+      <div className="mt-4 flex justify-end">
+        <Button
+          variant="danger"
+          onClick={() => setDeletingAll(true)}
+          disabled={busy}
+          aria-label="Delete all classes"
+        >
+          {busy ? "Deleting…" : "Delete all"}
+        </Button>
       </div>
 
       <ConfirmModal
