@@ -41,12 +41,14 @@ export default function SettingsSection({
   connected,
   cleaning,
   onCleanup,
+  onCleanupAggressive,
 }: {
   settings: SettingsDTO | null;
   onSettingsChange: (s: SettingsDTO) => void;
   connected: boolean;
   cleaning: boolean;
   onCleanup: () => void;
+  onCleanupAggressive: () => void;
 }) {
   const [subscribed, setSubscribed] = useState<boolean | null>(null);
   const [busy, setBusy] = useState(false);
@@ -55,6 +57,7 @@ export default function SettingsSection({
   const [error, setError] = useState<string | null>(null);
   const [notice, setNotice] = useState<string | null>(null);
   const [confirmingCleanup, setConfirmingCleanup] = useState(false);
+  const [confirmingAggressive, setConfirmingAggressive] = useState(false);
   const { toast } = useToast();
 
   useEffect(() => {
@@ -301,22 +304,41 @@ const isSelected = (m: number) => {
         )}
 
         {connected && (
-          <div className="flex flex-wrap items-center justify-between gap-3 pt-4">
-            <div>
-              <p className="text-sm font-medium text-zinc-900">Calendar cleanup</p>
-              <p className="text-sm text-zinc-500">
-                Removes leftover class events in Google Calendar that are no
-                longer in your schedule here — matched by name and recurrence.
-                Personal events are never touched.
-              </p>
+          <div className="space-y-4 pt-4">
+            <div className="flex flex-wrap items-center justify-between gap-3">
+              <div>
+                <p className="text-sm font-medium text-zinc-900">Calendar cleanup</p>
+                <p className="text-sm text-zinc-500">
+                  Removes leftover class events in Google Calendar that are no
+                  longer in your schedule — matched by name. Personal events
+                  are never touched.
+                </p>
+              </div>
+              {cleaning ? (
+                <Spinner label="Cleaning…" />
+              ) : (
+                <Button variant="secondary" onClick={() => setConfirmingCleanup(true)}>
+                  Clean up
+                </Button>
+              )}
             </div>
-            {cleaning ? (
-              <Spinner label="Cleaning…" />
-            ) : (
-              <Button variant="secondary" onClick={() => setConfirmingCleanup(true)}>
-                Clean up
-              </Button>
-            )}
+            <div className="flex flex-wrap items-center justify-between gap-3 border-t border-zinc-100 pt-4">
+              <div>
+                <p className="text-sm font-medium text-zinc-900">Remove all old classes</p>
+                <p className="text-sm text-zinc-500">
+                  Deletes every weekly recurring event that looks like a class
+                  (weekday, daytime) — even old ones from before you started
+                  using Scheduler. Use this if you still see stale events.
+                </p>
+              </div>
+              {cleaning ? (
+                <Spinner label="Cleaning…" />
+              ) : (
+                <Button variant="danger" onClick={() => setConfirmingAggressive(true)}>
+                  Remove all old classes
+                </Button>
+              )}
+            </div>
           </div>
         )}
       </div>
@@ -332,6 +354,20 @@ const isSelected = (m: number) => {
           onCleanup();
         }}
         onCancel={() => setConfirmingCleanup(false)}
+      />
+
+      <ConfirmModal
+        open={confirmingAggressive}
+        title="Remove all old class events?"
+        body="This will delete every weekly recurring event during daytime hours on your calendar — even events from before you started using Scheduler. Your current synced classes will be kept. This can't be undone."
+        confirmLabel="Remove all old classes"
+        danger
+        busy={cleaning}
+        onConfirm={() => {
+          setConfirmingAggressive(false);
+          onCleanupAggressive();
+        }}
+        onCancel={() => setConfirmingAggressive(false)}
       />
 
       {notice && (

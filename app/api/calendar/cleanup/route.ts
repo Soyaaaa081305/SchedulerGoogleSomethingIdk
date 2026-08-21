@@ -7,7 +7,23 @@ export const dynamic = "force-dynamic";
 
 const WEEKLY_RRULE = /RRULE:FREQ=WEEKLY/;
 
-export async function POST() {
+function looksLikeClassEvent(ev: {
+  summary?: string | null;
+  start?: { dateTime?: string | null; date?: string | null } | null;
+  recurrence?: string[] | null;
+}): boolean {
+  const rrule = ev.recurrence?.[0] ?? "";
+  if (!WEEKLY_RRULE.test(rrule)) return false;
+
+  const startStr = ev.start?.dateTime;
+  if (!startStr) return false;
+  const hour = new Date(startStr).getUTCHours();
+  const day = new Date(startStr).getUTCDay();
+  if (day === 0 || day === 6) return false;
+  return hour >= 6 && hour < 20;
+}
+
+export async function POST(req: Request) {
   try {
     const userId = await requireUser();
     const calendar = await getCalendarForUser(userId);
@@ -17,6 +33,9 @@ export async function POST() {
         { status: 403 }
       );
     }
+
+    const { searchParams } = new URL(req.url);
+    const aggressive = searchParams.get("aggressive") === "1";
 
     const twoYearsAgo = new Date();
     twoYearsAgo.setFullYear(twoYearsAgo.getFullYear() - 2);
@@ -50,16 +69,19 @@ export async function POST() {
         if (!ev.id) continue;
 
         const rrule = ev.recurrence?.[0] ?? "";
-        const hasWeeklyRRule = WEEKLY_RRULE.test(rrule);
+        if (!WEEKLY_RRULE.test(rrule)) continue;
 
         const hasMarker =
           ev.description?.includes("Created by Scheduler") ?? false;
-
         const isKnownClass = myCourseNames.has(
           (ev.summary ?? "").trim().toLowerCase()
         );
 
-        if (!hasMarker && !(isKnownClass && hasWeeklyRRule)) continue;
+        if (aggressive) {
+          if (!looksLikeClassEvent(ev)) continue;
+        } else {
+          if (!hasMarker && !isKnownClass) continue;
+        }
 
         candidates++;
         await calendar.events

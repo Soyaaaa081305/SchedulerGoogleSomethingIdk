@@ -25,10 +25,13 @@ export default function SettingsPage({
   const [cleaning, setCleaning] = useState(false);
   const { toast } = useToast();
 
-  const cleanupCalendar = async () => {
+  const cleanupCalendar = async (aggressive = false) => {
     setCleaning(true);
     try {
-      const res = await fetch("/api/calendar/cleanup", { method: "POST" });
+      const url = aggressive
+        ? "/api/calendar/cleanup?aggressive=1"
+        : "/api/calendar/cleanup";
+      const res = await fetch(url, { method: "POST" });
       const data = (await res.json().catch(() => null)) as {
         deleted?: number;
         error?: string;
@@ -73,7 +76,8 @@ export default function SettingsPage({
           onSettingsChange={setSettingsState}
           connected={connected}
           cleaning={cleaning}
-          onCleanup={() => void cleanupCalendar()}
+          onCleanup={() => void cleanupCalendar(false)}
+          onCleanupAggressive={() => void cleanupCalendar(true)}
         />
 
         {lastSync && (
