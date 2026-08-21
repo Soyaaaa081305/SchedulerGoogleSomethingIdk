@@ -62,6 +62,40 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
       ]
     : [],
   callbacks: {
+    async jwt({ token, account }) {
+      // Persist fresh OAuth tokens to the DB on every sign-in so
+      // getCalendarForUser() can always find a valid refresh_token.
+      if (account && token.sub) {
+        await prisma.account.upsert({
+          where: {
+            provider_providerAccountId: {
+              provider: account.provider,
+              providerAccountId: account.providerAccountId,
+            },
+          },
+          create: {
+            userId: token.sub,
+            type: account.type,
+            provider: account.provider,
+            providerAccountId: account.providerAccountId,
+            refresh_token: account.refresh_token ?? null,
+            access_token: account.access_token ?? null,
+            expires_at: account.expires_at ?? null,
+            token_type: account.token_type ?? null,
+            scope: account.scope ?? null,
+            id_token: account.id_token ?? null,
+            session_state: (account.session_state as string) ?? null,
+          },
+          update: {
+            refresh_token: account.refresh_token ?? undefined,
+            access_token: account.access_token ?? undefined,
+            expires_at: account.expires_at ?? undefined,
+            scope: account.scope ?? undefined,
+          },
+        });
+      }
+      return token;
+    },
     async session({ session, token }) {
       if (session.user && token.sub) {
         session.user.id = token.sub;
