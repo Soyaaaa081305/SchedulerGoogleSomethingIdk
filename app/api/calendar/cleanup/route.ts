@@ -5,7 +5,7 @@ import { getCalendarForUser, isAppEvent } from "@/lib/calendar";
 
 export const dynamic = "force-dynamic";
 
-const APP_RRULE = /RRULE:FREQ=WEEKLY;BYDAY=[A-Z,]+;UNTIL=\d{8}T\d{6}Z/;
+const WEEKLY_RRULE = /RRULE:FREQ=WEEKLY/;
 
 export async function POST() {
   try {
@@ -21,18 +21,14 @@ export async function POST() {
     const sixMonthsAgo = new Date();
     sixMonthsAgo.setMonth(sixMonthsAgo.getMonth() - 6);
 
-    const [linked, mySchedules] = await Promise.all([
-      prisma.schedule.findMany({
-        where: { userId, googleEventId: { not: null } },
-        select: { googleEventId: true },
-      }),
-      prisma.schedule.findMany({
-        where: { userId },
-        select: { courseName: true },
-      }),
-    ]);
-    const linkedIds = new Set(linked.map((s) => s.googleEventId!));
-    const myCourseNames = new Set(mySchedules.map((s) => s.courseName.trim().toLowerCase()));
+    const mySchedules = await prisma.schedule.findMany({
+      where: { userId },
+      select: { googleEventId: true, courseName: true },
+    });
+    const linkedIds = new Set(mySchedules.map((s) => s.googleEventId).filter(Boolean));
+    const myCourseNames = new Set(
+      mySchedules.map((s) => s.courseName.trim().toLowerCase())
+    );
 
     let pageToken: string | undefined;
     let candidates = 0;
@@ -52,9 +48,9 @@ export async function POST() {
         const rrule = ev.recurrence?.[0];
         const hasMarker = isAppEvent(ev);
         const isMyClass =
-          !!rrule &&
-          APP_RRULE.test(rrule) &&
-          myCourseNames.has((ev.summary ?? "").trim().toLowerCase());
+          myCourseNames.has((ev.summary ?? "").trim().toLowerCase()) &&
+          rrule &&
+          WEEKLY_RRULE.test(rrule);
         if (!hasMarker && !isMyClass) continue;
         if (!ev.id) continue;
         candidates++;

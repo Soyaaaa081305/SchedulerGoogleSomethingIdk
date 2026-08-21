@@ -50,8 +50,8 @@ export default function SettingsSection({
 }) {
   const [subscribed, setSubscribed] = useState<boolean | null>(null);
   const [busy, setBusy] = useState(false);
-  const [testing, setTesting] = useState(false);
   const [savingTerm, setSavingTerm] = useState(false);
+  const [syncState, setSyncState] = useState<{ busy: boolean; result: string | null; error: string | null }>({ busy: false, result: null, error: null });
   const [error, setError] = useState<string | null>(null);
   const [notice, setNotice] = useState<string | null>(null);
   const [confirmingCleanup, setConfirmingCleanup] = useState(false);
@@ -149,24 +149,33 @@ export default function SettingsSection({
     }
   };
 
-  const testReminder = async () => {
-    setTesting(true);
+  const syncNow = async () => {
+    setSyncState({ busy: true, result: null, error: null });
     setError(null);
     setNotice(null);
     try {
-      const res = await fetch("/api/reminder/test", { method: "POST" });
+      const res = await fetch("/api/schedules/sync", { method: "POST" });
       const data = (await res.json().catch(() => null)) as {
-        sent?: boolean;
-        error?: string;
-        message?: { body: string };
+        created?: number;
+        failed?: number;
+        firstError?: string;
       } | null;
-      if (!res.ok) throw new Error(data?.error ?? "Could not send test reminder");
-      setNotice(`Test reminder sent. It said: "${data?.message?.body ?? "check your stuff today"}"`);
-      toast("success", "Test reminder sent.");
+      if (!res.ok) throw new Error(data?.firstError ?? "Could not sync");
+      const count = data?.created ?? 0;
+      if (count > 0) {
+        setSyncState({ busy: false, result: `Synced ${count} class${count > 1 ? "es" : ""} to Google Calendar.`, error: null });
+        toast("success", `Synced ${count} class${count > 1 ? "es" : ""} to Google Calendar.`);
+      } else {
+        const msg = data?.firstError ?? "All classes are already synced, or Google Calendar is not connected.";
+        setSyncState({ busy: false, result: null, error: msg });
+        toast("info", msg);
+      }
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Could not send test reminder");
+      const msg = err instanceof Error ? err.message : "Could not sync classes";
+      setSyncState({ busy: false, result: null, error: msg });
+      toast("error", msg);
     } finally {
-      setTesting(false);
+      setSyncState((s) => ({ ...s, busy: false }));
     }
   };
 
@@ -216,16 +225,6 @@ const isSelected = (m: number) => {
               </Button>
             </div>
           )}
-
-          <div className="mt-3">
-            <Button
-              variant="secondary"
-              onClick={() => void testReminder()}
-              disabled={testing || !isOn || subscribed !== true}
-            >
-              {testing ? "Sending…" : "Test reminder"}
-            </Button>
-          </div>
         </div>
 
         <div className="py-4">
@@ -277,12 +276,38 @@ const isSelected = (m: number) => {
         </div>
 
         {connected && (
+          <div className="py-4">
+            <p className="text-sm font-medium text-zinc-900">Sync to Google Calendar</p>
+            <p className="mt-0.5 text-sm text-zinc-500">
+              Push all unsynced classes to your Google Calendar. Classes already
+              synced won&apos;t be duplicated.
+            </p>
+            <div className="mt-3 flex flex-wrap items-center gap-3">
+              <Button
+                variant="secondary"
+                onClick={() => void syncNow()}
+                disabled={syncState.busy}
+              >
+                {syncState.busy ? "Syncing…" : "Sync now"}
+              </Button>
+              {syncState.result && (
+                <span className="text-sm text-green-600">{syncState.result}</span>
+              )}
+              {syncState.error && (
+                <span className="text-sm text-[#c8102e]">{syncState.error}</span>
+              )}
+            </div>
+          </div>
+        )}
+
+        {connected && (
           <div className="flex flex-wrap items-center justify-between gap-3 pt-4">
             <div>
               <p className="text-sm font-medium text-zinc-900">Calendar cleanup</p>
               <p className="text-sm text-zinc-500">
                 Removes leftover class events in Google Calendar that are no
-                longer in your schedule here. Personal events are never touched.
+                longer in your schedule here — matched by name and recurrence.
+                Personal events are never touched.
               </p>
             </div>
             {cleaning ? (
