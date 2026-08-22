@@ -131,6 +131,7 @@ export async function findExistingEvent(
       calendarId: "primary",
       timeMin: `${date}T00:00:00`,
       timeMax: `${date}T23:59:59`,
+      timeZone: timezone,
       singleEvents: false,
       maxResults: 250,
     });
@@ -148,16 +149,6 @@ export async function findExistingEvent(
 }
 
 const APP_MARKER = "Created by Scheduler (Mapúa MCL schedule sync)";
-
-export function isAppEvent(ev: {
-  summary?: string | null;
-  description?: string | null;
-  recurrence?: string[] | null;
-}): boolean {
-  if (ev.description?.includes(APP_MARKER)) return true;
-  const rrule = ev.recurrence?.[0] ?? "";
-  return /RRULE:FREQ=WEEKLY;BYDAY=[A-Z,]+;UNTIL=\d{8}T\d{6}Z/.test(rrule);
-}
 
 export async function createWeeklyEvent(
   userId: string,

@@ -7,6 +7,8 @@ import type { Day } from "@/lib/days";
 export interface Row extends ParsedCourse {
   id: string;
   selected: boolean;
+  /** Already on the user's schedule (same class, same time) — unticked by default. */
+  duplicate?: boolean;
 }
 
 export function CourseRowEditor({
@@ -17,7 +19,11 @@ export function CourseRowEditor({
   onChange: (row: Row) => void;
 }) {
   return (
-    <div className="flex flex-col gap-3 rounded-xl border border-zinc-200 p-3">
+    <div
+      className={`flex flex-col gap-3 rounded-xl border p-3 ${
+        row.duplicate ? "border-zinc-200 bg-zinc-50" : "border-zinc-200"
+      }`}
+    >
       <div className="flex items-center gap-3">
         <input
           type="checkbox"
@@ -34,6 +40,11 @@ export function CourseRowEditor({
           placeholder="Course name"
           aria-label={`Course name for row starting at ${row.startTime}`}
         />
+        {row.duplicate && (
+          <span className="shrink-0 rounded-full bg-zinc-200 px-2 py-0.5 text-xs font-medium text-zinc-600">
+            already saved
+          </span>
+        )}
       </div>
 
       <div className="flex flex-wrap items-center gap-3 text-sm">

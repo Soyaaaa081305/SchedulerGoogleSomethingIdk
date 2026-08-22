@@ -52,7 +52,7 @@ export default function SettingsPage({
 
   return (
     <div className="flex min-h-screen flex-col bg-[#f6f6f7]">
-      <Header user={user} connected={connected} />
+      <Header user={user} />
       <ConnectBanner connected={connected} needsReconnect={needsReconnect} />
 
       <main className="mx-auto w-full max-w-5xl flex-1 space-y-6 px-4 py-6 pb-16">
@@ -84,7 +84,8 @@ export default function SettingsPage({
         {lastSync && (
           <p className="text-center text-xs text-zinc-400">
             Last calendar sync: {new Date(lastSync).toLocaleString()}. The
-            nightly reminder runs at 9:00 PM via a free Vercel cron.
+            nightly reminder is delivered at your configured time via a free
+            Vercel cron.
           </p>
         )}
 

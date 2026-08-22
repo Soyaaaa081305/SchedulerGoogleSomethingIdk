@@ -1,5 +1,5 @@
 import type { ReactNode, ButtonHTMLAttributes } from "react";
-import { useEffect } from "react";
+import { useEffect, useRef } from "react";
 import { DAYS, type Day } from "@/lib/days";
 
 export const BRAND = {
@@ -9,12 +9,23 @@ export const BRAND = {
   border: "border-[#f3c8cf]",
 };
 
-export function Card({ title, children }: { title: string; children: ReactNode }) {
+export function Card({
+  title,
+  actions,
+  children,
+}: {
+  title: string;
+  actions?: ReactNode;
+  children: ReactNode;
+}) {
   return (
     <section className="rounded-2xl border border-zinc-200 bg-white p-5 shadow-sm">
-      <h2 className="mb-4 text-xs font-semibold uppercase tracking-wide text-[#c8102e]">
-        {title}
-      </h2>
+      <div className="mb-4 flex flex-wrap items-center justify-between gap-2">
+        <h2 className="text-xs font-semibold uppercase tracking-wide text-[#c8102e]">
+          {title}
+        </h2>
+        {actions}
+      </div>
       {children}
     </section>
   );
@@ -102,7 +113,7 @@ export function DayBadges({ days }: { days: string[] }) {
 
 export function ErrorBanner({ message }: { message: string }) {
   return (
-    <div role="alert" className="rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700">
+    <div role="alert" className="whitespace-pre-line rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700">
       {message}
     </div>
   );
@@ -145,6 +156,9 @@ export function Toggle({
   );
 }
 
+const FOCUSABLE_SELECTOR =
+  'a[href], button:not([disabled]), textarea:not([disabled]), input:not([disabled]):not([type="hidden"]), select:not([disabled]), [tabindex]:not([tabindex="-1"])';
+
 export function Modal({
   open,
   onClose,
@@ -156,13 +170,47 @@ export function Modal({
   children: ReactNode;
   size?: "md" | "lg";
 }) {
+  const panelRef = useRef<HTMLDivElement>(null);
+
   useEffect(() => {
     if (!open) return;
+
+    const previouslyFocused = document.activeElement as HTMLElement | null;
+    const panel = panelRef.current;
+    panel?.focus();
+
     const onKey = (e: KeyboardEvent) => {
-      if (e.key === "Escape" && onClose) onClose();
+      if (e.key === "Escape") {
+        e.stopPropagation();
+        onClose();
+        return;
+      }
+      if (e.key !== "Tab" || !panel) return;
+
+      // Keep Tab cycling inside the dialog.
+      const focusable = Array.from(panel.querySelectorAll<HTMLElement>(FOCUSABLE_SELECTOR));
+      if (focusable.length === 0) {
+        e.preventDefault();
+        return;
+      }
+      const first = focusable[0];
+      const last = focusable[focusable.length - 1];
+      const active = document.activeElement as HTMLElement | null;
+
+      if (e.shiftKey && (active === first || active === panel || !panel.contains(active))) {
+        e.preventDefault();
+        last.focus();
+      } else if (!e.shiftKey && (!active || !panel.contains(active) || active === last)) {
+        e.preventDefault();
+        first.focus();
+      }
     };
+
     window.addEventListener("keydown", onKey);
-    return () => window.removeEventListener("keydown", onKey);
+    return () => {
+      window.removeEventListener("keydown", onKey);
+      previouslyFocused?.focus?.();
+    };
   }, [open, onClose]);
 
   useEffect(() => {
@@ -195,9 +243,11 @@ export function Modal({
       }}
     >
       <div
+        ref={panelRef}
         role="dialog"
         aria-modal="true"
         aria-label="Dialog"
+        tabIndex={-1}
         onClick={(e) => e.stopPropagation()}
         className="modal-pop"
         style={{
@@ -211,6 +261,7 @@ export function Modal({
           borderRadius: "1.25rem",
           background: "white",
           boxShadow: "0 25px 60px -12px rgba(0,0,0,0.35)",
+          outline: "none",
         }}
       >
         <button

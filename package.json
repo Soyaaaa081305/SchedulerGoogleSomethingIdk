@@ -3,10 +3,15 @@
   "version": "0.1.0",
   "private": true,
   "scripts": {
+    "predev": "prisma generate --schema prisma/schema.prisma",
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
     "lint": "eslint",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "postinstall": "prisma generate --schema prisma/schema.prisma",
+    "prisma:local": "prisma db push --schema prisma/schema.prisma && prisma generate --schema prisma/schema.prisma",
     "prisma:prod": "prisma db push --schema prisma/schema.postgres.prisma",
     "prisma:migrate": "prisma migrate deploy --schema prisma/schema.postgres.prisma",
     "vercel-build": "prisma db push --schema prisma/schema.postgres.prisma && prisma generate --schema prisma/schema.postgres.prisma && next build"
@@ -40,6 +45,7 @@
     "eslint-config-next": "16.3.1",
     "prisma": "^7.9.1",
     "tailwindcss": "^4",
-    "typescript": "^5"
+    "typescript": "^5",
+    "vitest": "^4.1.11"
   }
 }

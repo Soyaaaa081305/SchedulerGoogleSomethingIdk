@@ -8,12 +8,47 @@ import {
   Spinner,
 } from "@/components/ui";
 import type { ScheduleDTO, SettingsDTO } from "@/lib/types";
+import { mergeDuplicateRows } from "@/lib/scheduleUtils";
 import type { ParsedCourse } from "@/lib/gemini";
 import { useToast } from "@/components/ToastProvider";
 import UploadWizard from "@/components/UploadWizard";
 import type { Row } from "@/components/CourseRowEditor";
 
 const PREVIEW_KEY = "scheduler-upload-preview";
+const MAX_DIMENSION = 1600;
+
+/**
+ * Downscales large photos client-side so phone snapshots fit under the 5 MB
+ * upload limit and Gemini gets a crisp, reasonably sized image. Falls back to
+ * the original file when decoding fails (e.g. HEIC on unsupported browsers).
+ */
+async function compressImage(file: File): Promise<File> {
+  try {
+    if (typeof createImageBitmap === "undefined" || file.type === "image/gif") return file;
+    const bitmap = await createImageBitmap(file, { imageOrientation: "from-image" });
+    const scale = Math.min(1, MAX_DIMENSION / Math.max(bitmap.width, bitmap.height));
+    // Small JPEG/PNG that already fits — keep the original bytes.
+    if (scale === 1 && file.size <= 1_500_000) {
+      bitmap.close();
+      return file;
+    }
+    const canvas = document.createElement("canvas");
+    canvas.width = Math.max(1, Math.round(bitmap.width * scale));
+    canvas.height = Math.max(1, Math.round(bitmap.height * scale));
+    const ctx = canvas.getContext("2d");
+    if (!ctx) {
+      bitmap.close();
+      return file;
+    }
+    ctx.drawImage(bitmap, 0, 0, canvas.width, canvas.height);
+    bitmap.close();
+    const blob = await new Promise<Blob | null>((resolve) => canvas.toBlob(resolve, "image/jpeg", 0.85));
+    if (!blob || blob.size >= file.size) return file;
+    return new File([blob], file.name.replace(/\.[^.]+$/, "") + ".jpg", { type: "image/jpeg" });
+  } catch {
+    return file;
+  }
+}
 
 async function uploadImage(file: File): Promise<ParsedCourse[]> {
   const form = new FormData();
@@ -53,10 +88,13 @@ function clearSavedPreview() {
 
 export default function UploadCard({
   onSaved,
+  existing,
   settings,
   onSettingsChange,
 }: {
-  onSaved: (s: ScheduleDTO) => void;
+  onSaved: (s: ScheduleDTO, googleError?: string) => void;
+  /** Saved classes — used to flag duplicates in the review wizard. */
+  existing: ScheduleDTO[];
   settings: SettingsDTO | null;
   onSettingsChange: (s: SettingsDTO) => void;
 }) {
@@ -121,13 +159,22 @@ export default function UploadCard({
 
       setLoading(true);
       try {
-        const courses = await uploadImage(file);
+        const toUpload = await compressImage(file);
+        if (toUpload !== file) {
+          setPreviewUrl(URL.createObjectURL(toUpload));
+        }
+        const courses = await uploadImage(toUpload);
         if (courses.length === 0) {
           setError("No courses were detected in that image. Try a clearer photo of your timetable.");
         } else {
-          setRows(courses.map((c, i) => ({ ...c, id: `new-${i}-${Date.now()}`, selected: true })));
+          const merged = mergeDuplicateRows(courses);
+          setRows(merged.map((c, i) => ({ ...c, id: `new-${i}-${Date.now()}`, selected: true })));
+          const dedupNote =
+            merged.length < courses.length
+              ? ` (${courses.length - merged.length} duplicate${courses.length - merged.length > 1 ? "s" : ""} merged)`
+              : "";
           setNotice(
-            `Found ${courses.length} course${courses.length > 1 ? "s" : ""}. Review them in the next steps, then they'll sync to your Google Calendar.`
+            `Found ${merged.length} course${merged.length > 1 ? "s" : ""}${dedupNote}. Review them, then sync to your Google Calendar.`
           );
           toast("info", "Classes detected — review and sync in a few steps.");
         }
@@ -203,6 +250,15 @@ export default function UploadCard({
               or click to browse, or just paste (Ctrl/Cmd + V) — a photo or
               screenshot of your timetable works best
             </p>
+            <div className="mt-2 flex flex-col items-center gap-1">
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img
+                src="/screenshots/app-upload.jpg"
+                alt="Example timetable photo"
+                className="h-24 w-auto rounded-md border border-zinc-200 opacity-80 shadow-sm transition-opacity hover:opacity-100"
+              />
+              <span className="text-[11px] text-zinc-400">like this ↑</span>
+            </div>
           </>
         )}
         <input
@@ -255,6 +311,7 @@ export default function UploadCard({
       {rows.length > 0 && (
         <UploadWizard
           rows={rows}
+          existing={existing}
           onClose={clearRows}
           onSaved={onSaved}
           settings={settings}

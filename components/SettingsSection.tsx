@@ -35,6 +35,15 @@ function endOfTermLabel(iso: string | null): string {
   });
 }
 
+const timeZoneOptions: string[] | null = (() => {
+  try {
+    const intlWithList = Intl as unknown as { supportedValuesOf?: (key: string) => string[] };
+    return intlWithList.supportedValuesOf ? intlWithList.supportedValuesOf("timeZone") : null;
+  } catch {
+    return null;
+  }
+})();
+
 export default function SettingsSection({
   settings,
   onSettingsChange,
@@ -89,7 +98,7 @@ export default function SettingsSection({
       await ensurePushSubscribed();
       setSubscribed(true);
       setNotice(
-        "Notifications are enabled — you'll get a push every night at 9:00 PM with tomorrow's classes."
+        "Notifications are enabled — you'll get a nightly push with tomorrow's classes."
       );
       toast("success", "Notifications enabled.");
     } catch (err) {
@@ -109,7 +118,7 @@ export default function SettingsSection({
         await ensurePushSubscribed();
         setSubscribed(true);
         setNotice(
-          "Reminder is active — you'll get a notification every night at 9:00 PM with tomorrow's classes."
+          "Reminder is active — you'll get a nightly notification with tomorrow's classes."
         );
       } else {
         setSubscribed(false);
@@ -155,6 +164,27 @@ export default function SettingsSection({
     }
   };
 
+  const patchSettingsField = async (body: Record<string, unknown>, successMessage: string) => {
+    setError(null);
+    setNotice(null);
+    setBusy(true);
+    try {
+      const res = await fetch("/api/settings", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(body),
+      });
+      const data = (await res.json().catch(() => null)) as { settings: SettingsDTO } | null;
+      if (!res.ok || !data) throw new Error("Could not save settings");
+      onSettingsChange(data.settings);
+      toast("success", successMessage);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Could not save settings");
+    } finally {
+      setBusy(false);
+    }
+  };
+
   const syncNow = async () => {
     setSyncState({ busy: true, result: null, error: null });
     setError(null);
@@ -163,14 +193,16 @@ export default function SettingsSection({
       const res = await fetch("/api/schedules/sync", { method: "POST" });
       const data = (await res.json().catch(() => null)) as {
         created?: number;
+        repaired?: number;
         failed?: number;
         firstError?: string;
       } | null;
       if (!res.ok) throw new Error(data?.firstError ?? "Could not sync");
-      const count = data?.created ?? 0;
+      const count = (data?.created ?? 0) + (data?.repaired ?? 0);
       if (count > 0) {
-        setSyncState({ busy: false, result: `Synced ${count} class${count > 1 ? "es" : ""} to Google Calendar.`, error: null });
-        toast("success", `Synced ${count} class${count > 1 ? "es" : ""} to Google Calendar.`);
+        const msg = `Synced ${count} class${count > 1 ? "es" : ""} to Google Calendar.`;
+        setSyncState({ busy: false, result: msg, error: null });
+        toast("success", msg);
       } else {
         const msg = data?.firstError ?? "All classes are already synced, or Google Calendar is not connected.";
         setSyncState({ busy: false, result: null, error: msg });
@@ -200,13 +232,59 @@ const isSelected = (m: number) => {
             <div>
               <p className="text-sm font-medium text-zinc-900">Daily reminder</p>
               <p className="text-sm text-zinc-500">
-                {settings ? formatReminderTime(settings.reminderTime) : "9:00 PM"} every day
-                {settings?.timezone ? ` (${settings.timezone})` : ""} — a push
-                notification listing your next day&apos;s classes.
+                A nightly push listing your next day&apos;s classes.
               </p>
             </div>
             <Toggle checked={isOn} onChange={(v) => void enableReminder(v)} disabled={busy} />
           </div>
+
+          {settings && (
+            <div className="mt-3 flex flex-wrap items-end gap-4 rounded-lg border border-zinc-200 bg-zinc-50 p-3">
+              <label className="flex flex-col gap-1 text-xs font-medium text-zinc-600">
+                Reminder time
+                <span className="flex items-center gap-2">
+                  <input
+                    type="time"
+                    value={settings.reminderTime}
+                    disabled={busy}
+                    onChange={(e) => {
+                      if (e.target.value) {
+                        void patchSettingsField(
+                          { reminderTime: e.target.value },
+                          "Reminder time saved."
+                        );
+                      }
+                    }}
+                    className="rounded-lg border border-zinc-300 bg-white px-2 py-1.5 text-sm text-zinc-900"
+                  />
+                  <span className="text-zinc-400">{formatReminderTime(settings.reminderTime)}</span>
+                </span>
+              </label>
+              <label className="flex flex-col gap-1 text-xs font-medium text-zinc-600">
+                Timezone
+                <select
+                  value={settings.timezone}
+                  disabled={busy}
+                  onChange={(e) => {
+                    void patchSettingsField({ timezone: e.target.value }, "Timezone saved.");
+                  }}
+                  className="max-w-[16rem] rounded-lg border border-zinc-300 bg-white px-2 py-1.5 text-sm text-zinc-900"
+                >
+                  {(timeZoneOptions ?? [settings.timezone]).includes(settings.timezone) ? null : (
+                    <option value={settings.timezone}>{settings.timezone}</option>
+                  )}
+                  {(timeZoneOptions ?? [settings.timezone]).map((tzName) => (
+                    <option key={tzName} value={tzName}>
+                      {tzName}
+                    </option>
+                  ))}
+                </select>
+              </label>
+              <p className="text-xs text-zinc-400">
+                The push arrives when it&apos;s this time in this timezone.
+              </p>
+            </div>
+          )}
 
           {busy && (
             <div className="mt-3">
@@ -248,9 +326,7 @@ const isSelected = (m: number) => {
                   type="button"
                   disabled={savingTerm}
                   aria-pressed={active}
-                  onClick={() =>
-                    void saveSemesterEnd(settings?.semesterEnd ? termEndFor(m) : termEndFor(m))
-                  }
+                  onClick={() => void saveSemesterEnd(termEndFor(m))}
                   className={`rounded-full border px-3 py-1.5 text-sm font-medium transition-colors disabled:opacity-50 ${
                     active
                       ? "border-[#c8102e] bg-[#fdeeef] text-[#c8102e]"

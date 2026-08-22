@@ -15,6 +15,7 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
+  metadataBase: new URL(process.env.NEXTAUTH_URL ?? process.env.NEXT_PUBLIC_SITE_URL ?? "http://localhost:3000"),
   title: "Scheduler — AI School Schedule Assistant",
   description:
     "Upload your class schedule, let AI read it, and sync it into Google Calendar with a nightly reminder so you never miss a class.",

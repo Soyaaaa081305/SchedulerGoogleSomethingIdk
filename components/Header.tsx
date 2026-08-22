@@ -27,7 +27,7 @@ function NavLink({ href, label }: { href: string; label: string }) {
   );
 }
 
-export default function Header({ user, connected }: { user: UserInfo; connected: boolean }) {
+export default function Header({ user }: { user: UserInfo }) {
   return (
     <header className="sticky top-0 z-10 border-b border-zinc-200 bg-white/95 backdrop-blur">
       <div className="h-1 bg-gradient-to-r from-[#c8102e] via-[#a50d26] to-[#8a0a1e]" aria-hidden="true" />

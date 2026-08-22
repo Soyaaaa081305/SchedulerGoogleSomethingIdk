@@ -11,15 +11,24 @@ export async function DELETE() {
       select: { id: true, googleEventId: true },
     });
 
-    for (const s of schedules) {
-      if (s.googleEventId) {
-        await deleteWeeklyEvent(userId, s.googleEventId).catch(() => {});
+    const withEvents = schedules.filter((s) => s.googleEventId);
+
+    const results = await Promise.allSettled(
+      withEvents.map((s) => deleteWeeklyEvent(userId, s.googleEventId!))
+    );
+    results.forEach((r, i) => {
+      if (r.status === "rejected") {
+        console.warn("[schedules] google event delete failed for", withEvents[i].id, r.reason);
       }
-    }
+    });
 
     await prisma.schedule.deleteMany({ where: { userId } });
 
-    return NextResponse.json({ ok: true, deleted: schedules.length });
+    return NextResponse.json({
+      ok: true,
+      deleted: schedules.length,
+      calendarDeletesFailed: results.filter((r) => r.status === "rejected").length,
+    });
   } catch (err) {
     return handleError(err);
   }

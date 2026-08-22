@@ -1,12 +1,17 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { Modal, Button, Toggle, Spinner, ErrorBanner, NoticeBanner } from "@/components/ui";
 import { useToast } from "@/components/ToastProvider";
 import { ensurePushSubscribed } from "@/lib/pushClient";
 import { TERM_OPTIONS, TERM_LABELS, termEndFor } from "@/lib/term";
 import type { ScheduleDTO, SettingsDTO } from "@/lib/types";
 import type { ParsedCourse } from "@/lib/gemini";
+import {
+  conflictsWithinRows,
+  conflictsWithExisting,
+  isDuplicateOfExisting,
+} from "@/lib/scheduleUtils";
 import { CourseRowEditor, type Row } from "@/components/CourseRowEditor";
 
 async function saveSchedule(row: ParsedCourse): Promise<{
@@ -33,6 +38,7 @@ const STEPS = ["Review", "Term length", "Reminder", "Confirm"];
 
 export default function UploadWizard({
   rows,
+  existing,
   onClose,
   onSaved,
   settings,
@@ -40,8 +46,10 @@ export default function UploadWizard({
   onCleared,
 }: {
   rows: Row[];
+  /** The user's already-saved classes — used for duplicate + overlap checks. */
+  existing: ScheduleDTO[];
   onClose: () => void;
-  onSaved: (s: ScheduleDTO) => void;
+  onSaved: (s: ScheduleDTO, googleError?: string) => void;
   settings: SettingsDTO | null;
   onSettingsChange: (s: SettingsDTO) => void;
   onCleared: () => void;
@@ -56,7 +64,30 @@ export default function UploadWizard({
   const [reminderError, setReminderError] = useState<string | null>(null);
   const [reminderNotice, setReminderNotice] = useState<string | null>(null);
 
+  // Flag rows that are already on the schedule so they start unselected.
+  useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    setRowsState((prev) =>
+      prev.map((r) => {
+        if (isDuplicateOfExisting(r, existing)) {
+          return r.duplicate ? r : { ...r, duplicate: true, selected: false };
+        }
+        return r.duplicate ? { ...r, duplicate: false } : r;
+      })
+    );
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [rows]);
+
   const selected = useMemo(() => rowsState.filter((r) => r.selected), [rowsState]);
+
+  // Pre-flight conflict checks — the server enforces these too (409), but
+  // catching them here avoids partial saves mid-sync.
+  const rowConflicts = useMemo(() => conflictsWithinRows(selected), [selected]);
+  const existingConflicts = useMemo(
+    () => conflictsWithExisting(selected, existing),
+    [selected, existing]
+  );
+  const hasConflicts = rowConflicts.length > 0 || existingConflicts.length > 0;
 
   const toggleReminder = async (on: boolean) => {
     setReminderOn(on);
@@ -66,7 +97,7 @@ export default function UploadWizard({
     try {
       await ensurePushSubscribed();
       setReminderNotice(
-        "Notifications are enabled — you'll get a push at 9:00 PM with tomorrow's classes."
+        "Notifications are enabled — you'll get a nightly push with tomorrow's classes."
       );
     } catch (err) {
       setReminderError(err instanceof Error ? err.message : "Could not enable notifications");
@@ -92,25 +123,9 @@ export default function UploadWizard({
       await patchSettings({ semesterEnd, reminderEnabled: reminderOn });
       if (reminderOn) {
         try {
-          const reg = await navigator.serviceWorker?.getRegistration();
-          const sub = reg ? await reg.pushManager.getSubscription() : null;
-          if (!sub) await ensurePushSubscribed();
-          else {
-            // must be saved server-side too for the cron to find it
-            await fetch("/api/push/subscribe", {
-              method: "POST",
-              headers: { "Content-Type": "application/json" },
-              body: JSON.stringify({
-                subscription: {
-                  endpoint: sub.endpoint,
-                  keys: {
-                    p256dh: btoa(String.fromCharCode(...new Uint8Array(sub.getKey("p256dh")!))),
-                    auth: btoa(String.fromCharCode(...new Uint8Array(sub.getKey("auth")!))),
-                  },
-                },
-              }),
-            });
-          }
+          // Reuses the browser subscription (or creates one) and saves it
+          // server-side so the nightly cron can find it.
+          await ensurePushSubscribed();
         } catch {
           setReminderError(
             "Classes will sync, but notifications are blocked — allow them later in Settings."
@@ -126,7 +141,7 @@ export default function UploadWizard({
           endTime: row.endTime,
           room: row.room,
         });
-        onSaved(result.schedule);
+        onSaved(result.schedule, result.googleError);
         if (result.googleError && !googleError) googleError = result.googleError;
       }
       if (googleError) {
@@ -178,10 +193,24 @@ export default function UploadWizard({
           <div className="mt-4">
             <h2 className="text-lg font-black text-zinc-900">Review your classes</h2>
             <p className="mt-1 text-sm text-zinc-600">
-              The AI read {rowsState.length} course{rowsState.length > 1 ? "s" : ""}. Expand
-              any row to edit the details, and untick anything you don&apos;t
-              want synced.
+              The AI read {rowsState.length} course{rowsState.length > 1 ? "s" : ""}. Edit any
+              row, and untick anything you don&apos;t want synced. Classes
+              already on your schedule are unticked automatically.
             </p>
+            {rowConflicts.length > 0 && (
+              <div className="mt-3">
+                <ErrorBanner
+                  message={`Timing conflicts between the extracted classes:\n${rowConflicts.join("\n")}\nFix the times or untick one of each pair before syncing.`}
+                />
+              </div>
+            )}
+            {rowConflicts.length === 0 && existingConflicts.length > 0 && (
+              <div className="mt-3">
+                <ErrorBanner
+                  message={`These overlap classes already on your schedule:\n${existingConflicts.join("\n")}`}
+                />
+              </div>
+            )}
             <div className="mt-4 space-y-3">
               {rowsState.map((row) => (
                 <CourseRowEditor
@@ -266,7 +295,12 @@ export default function UploadWizard({
             <div className="mt-4 flex items-center justify-between rounded-xl border border-zinc-200 p-4">
               <div>
                 <p className="text-sm font-medium text-zinc-900">Daily reminder</p>
-                <p className="text-sm text-zinc-500">9:00 PM · Asia/Manila</p>
+                <p className="text-sm text-zinc-500">
+                  {settings?.reminderTime
+                    ? `${settings.reminderTime} · ${settings.timezone}`
+                    : "Nightly · Asia/Manila"}{" "}
+                  — change it later in Settings.
+                </p>
               </div>
               <Toggle checked={reminderOn} onChange={(v) => void toggleReminder(v)} />
             </div>
@@ -367,7 +401,7 @@ export default function UploadWizard({
                   setStep((s) => s + 1);
                 }
               }}
-              disabled={syncing || (step === 0 && selected.length === 0)}
+              disabled={syncing || (step === 0 && (selected.length === 0 || hasConflicts))}
             >
               {step === STEPS.length - 1
                 ? syncing

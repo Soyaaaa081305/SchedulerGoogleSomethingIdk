@@ -101,7 +101,7 @@ export async function POST(req: Request) {
     const dto = toScheduleDTO(schedule);
     return NextResponse.json(
       googleError ? { schedule: dto, googleError } : { schedule: dto },
-      { status: googleError ? 201 : 201 }
+      { status: 201 }
     );
   } catch (err) {
     return handleError(err);

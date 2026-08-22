@@ -69,7 +69,7 @@ export async function PATCH(req: Request, ctx: RouteContext<"/api/schedules/[id]
     try {
       if (schedule.googleEventId) {
         const ok = await updateWeeklyEvent(userId, schedule.googleEventId, eventInput);
-        if (ok) lastSyncedAt = new Date();
+        lastSyncedAt = ok ? new Date() : null;
       } else {
         const event = await createWeeklyEvent(userId, eventInput);
         if (event) {
@@ -79,6 +79,8 @@ export async function PATCH(req: Request, ctx: RouteContext<"/api/schedules/[id]
       }
     } catch (err) {
       console.error("[schedules] google sync failed on update:", err);
+      // Keep the event id (it still exists remotely) but drop the sync marker
+      // so the row honestly shows "unsynced" after a failed re-sync.
       lastSyncedAt = null;
     }
 
@@ -91,7 +93,9 @@ export async function PATCH(req: Request, ctx: RouteContext<"/api/schedules/[id]
         endTime: normalized.data.endTime,
         room: normalized.data.room,
         googleEventId,
-        lastSyncedAt: lastSyncedAt ?? undefined,
+        // Write null explicitly (undefined would skip the field and keep a
+        // stale "synced" marker after a failed re-sync).
+        lastSyncedAt,
       },
     });
 
@@ -108,7 +112,19 @@ export async function DELETE(_req: Request, ctx: RouteContext<"/api/schedules/[i
     const schedule = await getOwnedSchedule(id, userId);
 
     if (schedule.googleEventId) {
-      await deleteWeeklyEvent(userId, schedule.googleEventId).catch(() => {});
+      const result = await deleteWeeklyEvent(userId, schedule.googleEventId)
+        .then(() => true)
+        .catch((err) => {
+          console.warn("[schedules] google event delete failed for", schedule.courseName, err);
+          return false;
+        });
+      if (!result) {
+        console.warn(
+          "[schedules] calendar row removed locally but Google event",
+          schedule.googleEventId,
+          "was not deleted (calendar unreachable or not connected)."
+        );
+      }
     }
 
     await prisma.schedule.delete({ where: { id } });
