@@ -25,7 +25,7 @@ function toMinutes(time: string): number {
  * Simple greedy algorithm: cluster events that overlap transitively,
  * then assign each to the first free lane inside its cluster.
  */
-function layoutDay(items: ScheduleDTO[]): PlacedBlock[] {
+function layoutDay(items: ScheduleDTO[], offsetMin: number): PlacedBlock[] {
   const parsed = items
     .map((s) => ({ s, start: toMinutes(s.startTime), end: toMinutes(s.endTime) }))
     .filter((x) => x.end > x.start)
@@ -48,7 +48,7 @@ function layoutDay(items: ScheduleDTO[]): PlacedBlock[] {
       }
       blocks.push({
         schedule: item.s,
-        top: (item.start / 60) * HOUR_HEIGHT,
+        top: ((item.start - offsetMin) / 60) * HOUR_HEIGHT,
         height: Math.max(MIN_BLOCK, ((item.end - item.start) / 60) * HOUR_HEIGHT - 2),
         lane,
         lanes: laneEnds.length,
@@ -86,7 +86,7 @@ export default function WeekGrid({
     for (const s of schedules) for (const d of s.daysOfWeek) used.add(d);
 
     // Always show MON–FRI; add SAT/SUN only when a class meets then.
-    const columns = DAYS.filter((d) => (d <= "FRI" ? true : used.has(d)));
+    const columns = DAYS.filter((d, i) => i < 5 || used.has(d));
 
     let axisStartMin = 7 * 60;
     let axisEndMin = 19 * 60;
@@ -154,7 +154,7 @@ export default function WeekGrid({
 
           {/* Day columns */}
           {model.columns.map((day) => {
-            const blocks = layoutDay(model.byDay.get(day) ?? []);
+            const blocks = layoutDay(model.byDay.get(day) ?? [], model.axisStartMin);
             return (
               <div
                 key={day}

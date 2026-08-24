@@ -217,17 +217,15 @@ export default function SettingsSection({
     }
   };
 
-const isSelected = (m: number) => {
+  const isSelected = (m: number) => {
     if (!settings?.semesterEnd) return m === 3;
-    return Math.abs(
-      new Date(settings.semesterEnd).getTime() - new Date(termEndFor(m)).getTime()
-    ) < 24 * 60 * 60 * 1000;
+    return Math.abs(new Date(settings.semesterEnd).getTime() - new Date(termEndFor(m)).getTime()) < 24 * 60 * 60 * 1000;
   };
 
   return (
     <Card title="Settings">
       <div className="divide-y divide-zinc-100">
-        <div className="pb-4">
+        <div className="pb-5">
           <div className="flex items-center justify-between gap-4">
             <div>
               <p className="text-sm font-medium text-zinc-900">Daily reminder</p>
@@ -239,7 +237,7 @@ const isSelected = (m: number) => {
           </div>
 
           {settings && (
-            <div className="mt-3 flex flex-wrap items-end gap-4 rounded-lg border border-zinc-200 bg-zinc-50 p-3">
+            <div className="mt-3 flex flex-wrap items-end gap-3 rounded-lg border border-zinc-200 bg-zinc-50 p-4 sm:gap-4">
               <label className="flex flex-col gap-1 text-xs font-medium text-zinc-600">
                 Reminder time
                 <span className="flex items-center gap-2">
@@ -260,7 +258,7 @@ const isSelected = (m: number) => {
                   <span className="text-zinc-400">{formatReminderTime(settings.reminderTime)}</span>
                 </span>
               </label>
-              <label className="flex flex-col gap-1 text-xs font-medium text-zinc-600">
+              <label className="flex min-w-0 flex-col gap-1 text-xs font-medium text-zinc-600">
                 Timezone
                 <select
                   value={settings.timezone}
@@ -268,7 +266,7 @@ const isSelected = (m: number) => {
                   onChange={(e) => {
                     void patchSettingsField({ timezone: e.target.value }, "Timezone saved.");
                   }}
-                  className="max-w-[16rem] rounded-lg border border-zinc-300 bg-white px-2 py-1.5 text-sm text-zinc-900"
+                  className="w-full max-w-full rounded-lg border border-zinc-300 bg-white px-2 py-1.5 text-sm text-zinc-900 sm:max-w-[16rem]"
                 >
                   {(timeZoneOptions ?? [settings.timezone]).includes(settings.timezone) ? null : (
                     <option value={settings.timezone}>{settings.timezone}</option>
@@ -311,7 +309,7 @@ const isSelected = (m: number) => {
           )}
         </div>
 
-        <div className="py-4">
+        <div className="py-5">
           <p className="text-sm font-medium text-zinc-900">Term length</p>
           <p className="mt-0.5 text-sm text-zinc-500">
             Weekly classes repeat until this date (default: 3 months — one MCL
@@ -358,7 +356,7 @@ const isSelected = (m: number) => {
         </div>
 
         {connected && (
-          <div className="py-4">
+          <div className="py-5">
             <p className="text-sm font-medium text-zinc-900">Sync to Google Calendar</p>
             <p className="mt-0.5 text-sm text-zinc-500">
               Push all unsynced classes to your Google Calendar. Classes already
@@ -383,7 +381,7 @@ const isSelected = (m: number) => {
         )}
 
         {connected && (
-          <div className="space-y-4 pt-4">
+          <div className="space-y-5 pt-5">
             <div className="flex flex-wrap items-center justify-between gap-3">
               <div>
                 <p className="text-sm font-medium text-zinc-900">Calendar cleanup</p>
@@ -401,7 +399,7 @@ const isSelected = (m: number) => {
                 </Button>
               )}
             </div>
-            <div className="flex flex-wrap items-center justify-between gap-3 border-t border-zinc-100 pt-4">
+            <div className="flex flex-wrap items-center justify-between gap-3 border-t border-zinc-100 pt-5">
               <div>
                 <p className="text-sm font-medium text-zinc-900">Remove all old classes</p>
                 <p className="text-sm text-zinc-500">
@@ -418,7 +416,7 @@ const isSelected = (m: number) => {
                 </Button>
               )}
             </div>
-            <div className="flex flex-wrap items-center justify-between gap-3 border-t border-zinc-100 pt-4">
+            <div className="flex flex-wrap items-center justify-between gap-3 border-t border-zinc-100 pt-5">
               <div>
                 <p className="text-sm font-medium text-zinc-900">Delete everything from calendar</p>
                 <p className="text-sm text-zinc-500">
