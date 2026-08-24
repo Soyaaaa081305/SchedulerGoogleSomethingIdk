@@ -1,6 +1,8 @@
 import { NextResponse } from "next/server";
 import { auth } from "@/auth";
 import { prisma } from "@/lib/prisma";
+import { logger } from "@/lib/logger";
+import { captureException } from "@/lib/sentry";
 
 export class ApiError extends Error {
   status: number;
@@ -21,7 +23,8 @@ export function handleError(err: unknown) {
   if (err instanceof ApiError) {
     return NextResponse.json({ error: err.message }, { status: err.status });
   }
-  console.error("[api]", err);
+  logger.error("[api] unhandled", { error: String(err) });
+  captureException(err);
   return NextResponse.json(
     { error: "Something went wrong. Please try again." },
     { status: 500 }

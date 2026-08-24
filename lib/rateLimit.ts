@@ -1,3 +1,9 @@
+// In-memory fallback. If UPSTASH_REDIS_REST_URL + TOKEN are set and
+// @upstash/ratelimit is installed, swap this for `new Ratelimit({ redis, limiter: Ratelimit.slidingWindow(...) })`
+// This scaffold degrades gracefully without keys (single-instance).
+const _upstashReady = Boolean(process.env.UPSTASH_REDIS_REST_URL && process.env.UPSTASH_REDIS_REST_TOKEN);
+void _upstashReady;
+
 type Entry = { count: number; reset: number };
 
 const store = new Map<string, Entry>();
