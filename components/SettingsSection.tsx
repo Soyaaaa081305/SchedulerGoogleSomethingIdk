@@ -64,6 +64,8 @@ export default function SettingsSection({
   const [error, setError] = useState<string | null>(null);
   const [notice, setNotice] = useState<string | null>(null);
   const [confirmingCleanup, setConfirmingCleanup] = useState(false);
+  const [icalUrl, setIcalUrl] = useState<string | null>(null);
+  const [icalCopied, setIcalCopied] = useState(false);
   const { toast } = useToast();
 
   useEffect(() => {
@@ -80,6 +82,15 @@ export default function SettingsSection({
     return () => {
       cancelled = true;
     };
+  }, []);
+
+  useEffect(() => {
+    fetch("/api/ical/token")
+      .then((r) => (r.ok ? r.json() : null))
+      .then((d) => {
+        if (d?.feedUrl) setIcalUrl(d.feedUrl);
+      })
+      .catch(() => {});
   }, []);
 
   const isOn = Boolean(settings?.reminderEnabled);
@@ -373,6 +384,37 @@ export default function SettingsSection({
             </div>
           </div>
         )}
+
+        <div className="py-5">
+          <p className="text-sm font-medium text-zinc-900">Calendar subscription (iCal)</p>
+          <p className="mt-0.5 text-sm text-zinc-500">
+            Works with Apple Calendar, Outlook, and Google Calendar — no connection needed. Copy the link and add it as a subscribed calendar; it stays in sync when you edit your schedule.
+          </p>
+          <div className="mt-3 flex flex-wrap items-center gap-2">
+            <input
+              readOnly
+              value={icalUrl ?? "Loading…"}
+              className="min-w-0 flex-1 rounded-lg border border-zinc-200 bg-zinc-50 px-3 py-2 text-sm text-zinc-600"
+              onFocus={(e) => e.target.select()}
+              aria-label="iCal subscription URL"
+            />
+            <Button
+              variant="secondary"
+              disabled={!icalUrl}
+              onClick={() => {
+                if (!icalUrl) return;
+                navigator.clipboard.writeText(icalUrl).then(() => {
+                  setIcalCopied(true);
+                  toast("success", "Subscription link copied — add it in your calendar app.");
+                  setTimeout(() => setIcalCopied(false), 2000);
+                });
+              }}
+            >
+              {icalCopied ? "Copied!" : "Copy link"}
+            </Button>
+          </div>
+          <p className="mt-2 text-xs text-zinc-400">Keep this link private — anyone with it can see your class times.</p>
+        </div>
 
         {connected && (
           <div className="pt-5">

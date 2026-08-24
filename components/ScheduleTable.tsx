@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { Card, Button, DayPicker, DayBadges, ErrorBanner } from "@/components/ui";
 import ConfirmModal from "@/components/ConfirmModal";
 import AddClassModal from "@/components/AddClassModal";
@@ -31,7 +31,20 @@ export default function ScheduleTable({
   const [deletingAll, setDeletingAll] = useState(false);
   const [adding, setAdding] = useState(false);
   const [today, setToday] = useState<Day | null>(null);
+  const [query, setQuery] = useState("");
   const { toast } = useToast();
+
+  const filtered = useMemo(() => {
+    const q = query.trim().toLowerCase();
+    if (!q) return schedules;
+    return schedules.filter(
+      (s) =>
+        s.courseName.toLowerCase().includes(q) ||
+        (s.room && s.room.toLowerCase().includes(q)) ||
+        s.daysOfWeek.join(",").toLowerCase().includes(q) ||
+        s.startTime.includes(q)
+    );
+  }, [schedules, query]);
 
   useEffect(() => {
     // eslint-disable-next-line react-hooks/set-state-in-effect
@@ -176,8 +189,27 @@ export default function ScheduleTable({
           </div>
         )}
 
+        {schedules.length > 2 && (
+          <div className="mb-3 flex items-center gap-2">
+            <input
+              type="search"
+              value={query}
+              onChange={(e) => setQuery(e.target.value)}
+              placeholder="Search by name, room, or day…"
+              className="w-full rounded-lg border border-zinc-200 bg-zinc-50 px-3 py-2 text-sm text-zinc-900 placeholder:text-zinc-400 focus:border-zinc-300 focus:bg-white focus:outline-none"
+              aria-label="Search classes"
+            />
+            {query && <span className="shrink-0 text-xs text-zinc-400">{filtered.length}/{schedules.length}</span>}
+          </div>
+        )}
+
         <div className="space-y-3">
-          {schedules.map((s) =>
+          {filtered.length === 0 ? (
+            <p className="rounded-lg border border-dashed border-zinc-200 bg-zinc-50 px-4 py-6 text-center text-sm text-zinc-500">
+              No classes match “{query}”.
+            </p>
+          ) : (
+            filtered.map((s) =>
             editingId === s.id && draft ? (
               <div key={s.id} className="flex flex-col gap-3 rounded-xl border border-[#f3c8cf] bg-[#fdf7f8] p-3">
                 <input
@@ -274,7 +306,7 @@ export default function ScheduleTable({
                 </div>
               </div>
             )
-          )}
+          ))}
         </div>
 
         <div className="mt-4 flex flex-wrap items-center justify-between gap-2">
