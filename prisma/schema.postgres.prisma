@@ -22,6 +22,7 @@ model User {
   schedules     Schedule[]
   pushSubs      PushSubscription[]
   settings      Settings?
+  auditLogs     AuditLog[]
 }
 
 model Account {
@@ -85,4 +86,17 @@ model Settings {
   semesterEnd     DateTime?
   updatedAt       DateTime  @updatedAt
   user            User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model AuditLog {
+  id        String   @id @default(cuid())
+  userId    String
+  action    String
+  target    String?
+  meta      String?
+  createdAt DateTime @default(now())
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([createdAt])
 }

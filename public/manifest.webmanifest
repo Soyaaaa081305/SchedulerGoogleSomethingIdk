@@ -4,7 +4,7 @@
   "description": "Upload your class schedule, let AI read it, and sync it into Google Calendar with a nightly reminder so you never miss a class.",
   "start_url": "/",
   "display": "standalone",
-  "background_color": "#fafafa",
+  "background_color": "#f6f6f7",
   "theme_color": "#c8102e",
   "icons": [
     {

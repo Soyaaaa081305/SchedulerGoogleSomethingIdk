@@ -6,6 +6,7 @@ import ConnectBanner from "@/components/ConnectBanner";
 import UploadCard from "@/components/UploadCard";
 import ScheduleTable from "@/components/ScheduleTable";
 import OnboardingModal, { useOnboarding } from "@/components/OnboardingModal";
+import CommandPalette from "@/components/CommandPalette";
 import { describeNextOccurrence, nextOccurrenceInfo } from "@/lib/scheduleUtils";
 import { weekdayInTz } from "@/lib/days";
 import type { ScheduleDTO, SettingsDTO } from "@/lib/types";
@@ -136,6 +137,7 @@ export default function Dashboard({ user, initial }: { user: UserInfo; initial: 
         </footer>
       </main>
 
+      <CommandPalette schedules={schedules} />
       <OnboardingModal open={onboarding.open} onClose={onboarding.close} />
     </div>
   );
