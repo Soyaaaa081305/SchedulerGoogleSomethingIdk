@@ -169,12 +169,12 @@ export default function ScheduleTable({
         + Add class
       </Button>
       {schedules.length > 0 && (
-        <div className="flex overflow-hidden rounded-lg border border-zinc-200 text-xs font-medium">
+        <div className="flex overflow-hidden rounded-lg border border-zinc-200">
           <button
             type="button"
             aria-pressed={view === "grid"}
             onClick={() => switchView("grid")}
-            className={`px-2.5 py-1 transition-colors ${
+            className={`px-2.5 py-1 text-xs font-medium transition-colors ${
               view === "grid" ? "bg-[#c8102e] text-white" : "bg-white text-zinc-600 hover:bg-zinc-50"
             }`}
           >
@@ -184,7 +184,7 @@ export default function ScheduleTable({
             type="button"
             aria-pressed={view === "list"}
             onClick={() => switchView("list")}
-            className={`px-2.5 py-1 transition-colors ${
+            className={`px-2.5 py-1 text-xs font-medium transition-colors ${
               view === "list" ? "bg-[#c8102e] text-white" : "bg-white text-zinc-600 hover:bg-zinc-50"
             }`}
           >

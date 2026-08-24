@@ -74,7 +74,7 @@ export default function Header({ user }: { user: UserInfo }) {
           <button
             type="button"
             onClick={() => signOut({ callbackUrl: "/" })}
-            className="rounded-lg border border-zinc-200 px-3 py-1.5 text-xs font-medium text-zinc-600 transition-colors hover:border-zinc-300 hover:bg-zinc-50 hover:text-zinc-900"
+            className="rounded-lg border border-zinc-200 px-3 py-1.5 text-xs font-medium text-zinc-600 transition-colors hover:border-zinc-300 hover:bg-zinc-50 hover:text-zinc-900 active:scale-[0.99]"
           >
             Sign out
           </button>

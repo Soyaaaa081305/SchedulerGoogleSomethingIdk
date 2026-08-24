@@ -113,7 +113,7 @@ export function DayBadges({ days }: { days: string[] }) {
 
 export function ErrorBanner({ message }: { message: string }) {
   return (
-    <div role="alert" className="whitespace-pre-line rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700">
+    <div role="alert" className="whitespace-pre-line rounded-lg border border-[#f3c8cf] bg-[#fdeeef] px-3 py-2 text-sm text-[#8a0a1e]">
       {message}
     </div>
   );
@@ -223,24 +223,10 @@ export function Modal({
 
   if (!open) return null;
 
-  const maxWidth = size === "lg" ? "48rem" : "32rem";
-
   return (
     <div
       onClick={onClose}
-      className="fade-in"
-      style={{
-        position: "fixed",
-        inset: 0,
-        zIndex: 9999,
-        display: "flex",
-        alignItems: "center",
-        justifyContent: "center",
-        background: "rgba(24, 24, 27, 0.55)",
-        backdropFilter: "blur(4px)",
-        WebkitBackdropFilter: "blur(4px)",
-        padding: "1rem",
-      }}
+      className="fade-in fixed inset-0 z-[9999] flex items-center justify-center bg-zinc-900/55 p-4 backdrop-blur-sm"
     >
       <div
         ref={panelRef}
@@ -249,50 +235,13 @@ export function Modal({
         aria-label="Dialog"
         tabIndex={-1}
         onClick={(e) => e.stopPropagation()}
-        className="modal-pop"
-        style={{
-          position: "relative",
-          width: "100%",
-          maxWidth,
-          maxHeight: "88vh",
-          display: "flex",
-          flexDirection: "column",
-          overflow: "hidden",
-          borderRadius: "1.25rem",
-          background: "white",
-          boxShadow: "0 25px 60px -12px rgba(0,0,0,0.35)",
-          outline: "none",
-        }}
+        className={`modal-pop relative flex max-h-[88vh] w-full flex-col overflow-hidden rounded-2xl bg-white shadow-[0_25px_60px_-12px_rgba(0,0,0,0.35)] outline-none ${size === "lg" ? "max-w-3xl" : "max-w-lg"}`}
       >
         <button
           type="button"
           aria-label="Close"
           onClick={onClose}
-          style={{
-            position: "absolute",
-            top: "0.75rem",
-            right: "0.75rem",
-            zIndex: 10,
-            width: "2rem",
-            height: "2rem",
-            borderRadius: "9999px",
-            border: "1px solid #e4e4e7",
-            background: "rgba(255,255,255,0.9)",
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "center",
-            color: "#71717a",
-            cursor: "pointer",
-            transition: "background 0.15s ease, color 0.15s ease",
-          }}
-          onMouseEnter={(e) => {
-            e.currentTarget.style.background = "#fdeeef";
-            e.currentTarget.style.color = "#c8102e";
-          }}
-          onMouseLeave={(e) => {
-            e.currentTarget.style.background = "rgba(255,255,255,0.9)";
-            e.currentTarget.style.color = "#71717a";
-          }}
+          className="absolute right-3 top-3 z-10 flex h-8 w-8 items-center justify-center rounded-full border border-zinc-200 bg-white/90 text-zinc-500 transition-colors hover:bg-[#fdeeef] hover:text-[#c8102e]"
         >
           <svg width="14" height="14" viewBox="0 0 24 24" fill="none" strokeWidth={2.5} stroke="currentColor" aria-hidden="true">
             <path strokeLinecap="round" d="M6 6l12 12M18 6L6 18" />

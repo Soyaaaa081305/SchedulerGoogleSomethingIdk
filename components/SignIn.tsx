@@ -95,11 +95,11 @@ export default function SignIn() {
           "radial-gradient(1000px 500px at 50% -10%, rgba(200,16,46,0.07), transparent 60%), #f6f6f7",
       }}
     >
-      <div className="modal-pop w-full max-w-sm overflow-hidden rounded-3xl border border-zinc-200 bg-white shadow-xl shadow-zinc-900/5">
+      <div className="modal-pop w-full max-w-sm overflow-hidden rounded-2xl border border-zinc-200 bg-white shadow-xl shadow-zinc-900/5">
         <div className="h-1.5 bg-gradient-to-r from-[#c8102e] via-[#a50d26] to-[#8a0a1e]" aria-hidden="true" />
         <div className="p-7">
           <div className="flex items-center gap-3">
-            <span className="flex h-11 w-11 shrink-0 items-center justify-center overflow-hidden rounded-xl border border-zinc-200 bg-white shadow-sm">
+            <span className="flex h-11 w-11 shrink-0 items-center justify-center overflow-hidden rounded-lg border border-zinc-200 bg-white shadow-sm">
               {/* eslint-disable-next-line @next/next/no-img-element */}
               <img
                 src="/mcl-logo-112.png"
@@ -132,7 +132,7 @@ export default function SignIn() {
               signIn("google", { callbackUrl: "/" });
             }}
             disabled={signingIn}
-            className="mt-5 flex w-full items-center justify-center gap-2.5 rounded-xl bg-[#c8102e] px-4 py-3 text-sm font-semibold text-white shadow-sm transition-all hover:bg-[#a50d26] hover:shadow-md active:scale-[0.99] disabled:opacity-60"
+            className="mt-5 flex w-full items-center justify-center gap-2.5 rounded-lg bg-[#c8102e] px-4 py-3 text-sm font-semibold text-white shadow-sm transition-all hover:bg-[#a50d26] hover:shadow-md active:scale-[0.99] disabled:opacity-60"
           >
             {signingIn ? (
               <span className="flex items-center gap-2.5">
@@ -187,7 +187,7 @@ export default function SignIn() {
                   setError(null);
                 }}
                 placeholder="name@mcl.edu.ph"
-                className="mt-2 w-full rounded-xl border border-zinc-300 bg-white px-3.5 py-2.5 text-sm text-zinc-900 placeholder:text-zinc-300 transition-colors focus:border-[#c8102e] focus:outline-none"
+                className="mt-2 w-full rounded-lg border border-zinc-300 bg-white px-3.5 py-2.5 text-sm text-zinc-900 placeholder:text-zinc-300 transition-colors focus:border-[#c8102e]"
               />
               {error && (
                 <p className="mt-1.5 text-xs text-[#c8102e]">{error}</p>
@@ -196,7 +196,7 @@ export default function SignIn() {
                 type="button"
                 onClick={() => void requestGuestAccess()}
                 disabled={requesting}
-                className="mt-2.5 w-full rounded-xl border border-zinc-300 bg-white px-4 py-2.5 text-sm font-semibold text-zinc-800 transition-all hover:border-[#c8102e] hover:bg-[#fdeeef] hover:text-[#c8102e] active:scale-[0.99] disabled:opacity-50"
+                className="mt-2.5 w-full rounded-lg border border-zinc-300 bg-white px-4 py-2.5 text-sm font-semibold text-zinc-800 transition-all hover:border-[#c8102e] hover:bg-[#fdeeef] hover:text-[#c8102e] active:scale-[0.99] disabled:opacity-50"
               >
                 {requesting ? "Opening mail..." : "Request access as guest"}
               </button>

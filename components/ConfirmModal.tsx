@@ -23,7 +23,7 @@ export default function ConfirmModal({
 }) {
   return (
     <Modal open={open} onClose={onCancel}>
-      <div className="p-6 sm:p-8">
+      <div className="p-5 sm:p-6">
         <h2 className="text-lg font-black text-zinc-900" id="confirm-title">{title}</h2>
         <p className="mt-2 text-sm leading-relaxed text-zinc-600">{body}</p>
         <div className="mt-6 flex justify-end gap-2">

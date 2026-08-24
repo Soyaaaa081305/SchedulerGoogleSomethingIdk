@@ -83,7 +83,7 @@ export default function Dashboard({ user, initial }: { user: UserInfo; initial: 
 
       <main className="mx-auto w-full max-w-5xl flex-1 space-y-6 px-4 py-6 pb-16">
         <section
-          className="relative overflow-hidden rounded-3xl p-6 text-white shadow-lg sm:p-8"
+          className="relative overflow-hidden rounded-2xl p-6 text-white shadow-lg sm:p-8"
           style={{
             background: "linear-gradient(135deg, #c8102e 0%, #a50d26 55%, #8a0a1e 100%)",
           }}

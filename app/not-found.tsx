@@ -2,7 +2,7 @@ import Link from "next/link";
 
 export default function NotFound() {
   return (
-    <div className="flex min-h-screen flex-col items-center justify-center bg-zinc-50 px-4">
+    <div className="flex min-h-screen flex-col items-center justify-center bg-[#f6f6f7] px-4">
       <div className="w-full max-w-sm rounded-2xl border border-zinc-200 bg-white p-8 text-center shadow-sm">
         <div className="mx-auto mb-4 flex h-12 w-12 items-center justify-center rounded-full bg-red-50 text-lg font-black text-red-500">
           404
@@ -13,7 +13,7 @@ export default function NotFound() {
         </p>
         <Link
           href="/"
-          className="mt-6 inline-block rounded-lg bg-[#c8102e] px-5 py-2.5 text-sm font-semibold text-white transition-colors hover:bg-[#a50d26]"
+          className="mt-6 inline-block rounded-lg bg-[#c8102e] px-3 py-2 text-sm font-medium text-white shadow-sm transition-colors hover:bg-[#a50d26] active:scale-[0.99]"
         >
           Back to Scheduler
         </Link>

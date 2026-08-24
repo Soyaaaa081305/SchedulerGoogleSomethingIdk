@@ -1,6 +1,7 @@
 "use client";
 
 import { signIn } from "next-auth/react";
+import { Button } from "@/components/ui";
 
 export default function ConnectBanner({
   connected,
@@ -18,13 +19,9 @@ export default function ConnectBanner({
             ? "Your Google sign-in is missing the calendar permission. Reconnect to let classes sync."
             : "Connect Google Calendar to automatically add your classes as weekly recurring events."}
         </p>
-        <button
-          type="button"
-          onClick={() => signIn("google", { callbackUrl: window.location.pathname })}
-          className="rounded-lg bg-[#c8102e] px-4 py-2 text-sm font-semibold text-white transition-colors hover:bg-[#a50d26]"
-        >
+        <Button onClick={() => signIn("google", { callbackUrl: window.location.pathname })} className="px-4 font-semibold">
           {needsReconnect ? "Reconnect Google Calendar" : "Connect Google Calendar"}
-        </button>
+        </Button>
       </div>
     </div>
   );

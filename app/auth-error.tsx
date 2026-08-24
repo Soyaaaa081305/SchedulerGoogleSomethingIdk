@@ -10,8 +10,8 @@ function ErrorContent() {
 
   return (
     <div className="flex min-h-screen items-center justify-center bg-[#f6f6f7] px-4">
-      <div className="modal-pop w-full max-w-sm rounded-3xl border border-zinc-200 bg-white p-8 text-center shadow-xl shadow-zinc-900/5">
-        <div className="h-1.5 bg-gradient-to-r from-[#c8102e] via-[#a50d26] to-[#8a0a1e] -mx-8 -mt-8 rounded-t-3xl" aria-hidden="true" />
+      <div className="modal-pop w-full max-w-sm overflow-hidden rounded-2xl border border-zinc-200 bg-white p-8 text-center shadow-xl shadow-zinc-900/5">
+        <div className="h-1.5 bg-gradient-to-r from-[#c8102e] via-[#a50d26] to-[#8a0a1e] -mx-8 -mt-8" aria-hidden="true" />
         <div className="mx-auto mb-4 mt-4 flex h-12 w-12 items-center justify-center rounded-full bg-red-50">
           <svg className="h-6 w-6 text-red-500" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor">
             <path strokeLinecap="round" strokeLinejoin="round" d="M12 9v3.75m9-.75a9 9 0 11-18 0 9 9 0 0118 0zm-9 3.75h.008v.008H12v-.008z" />
@@ -33,7 +33,7 @@ function ErrorContent() {
         <div className="mt-6 flex flex-col gap-2">
           <Link
             href="/"
-            className="inline-block rounded-xl bg-[#c8102e] px-5 py-2.5 text-sm font-semibold text-white shadow-sm transition-all hover:bg-[#a50d26] hover:shadow-md"
+            className="inline-block rounded-lg bg-[#c8102e] px-3 py-2 text-sm font-medium text-white shadow-sm transition-colors hover:bg-[#a50d26] active:scale-[0.99]"
           >
             Back to Scheduler
           </Link>

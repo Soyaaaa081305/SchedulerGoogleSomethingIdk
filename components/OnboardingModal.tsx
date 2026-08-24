@@ -97,7 +97,7 @@ export default function OnboardingModal({
 
   return (
     <Modal open={open} onClose={onClose}>
-      <div style={{ flex: 1, minHeight: 0, overflowY: "auto", padding: "1.25rem" }} className="sm:p-8">
+      <div className="flex min-h-0 flex-1 flex-col overflow-y-auto p-5 sm:p-6">
         <div className="flex items-start justify-between">
           <span className="flex h-14 w-14 items-center justify-center rounded-2xl bg-[#fdeeef] text-[#c8102e] shadow-sm">
             {STEP_ICONS[current.icon]}
