@@ -7,7 +7,7 @@ export const dynamic = "force-dynamic";
 
 const WEEKLY_RRULE = /RRULE:FREQ=WEEKLY/;
 
-export async function POST(req: Request) {
+export async function POST() {
   try {
     const userId = await requireUser();
     const calendar = await getCalendarForUser(userId);
@@ -17,9 +17,6 @@ export async function POST(req: Request) {
         { status: 403 }
       );
     }
-
-    const { searchParams } = new URL(req.url);
-    const aggressive = searchParams.get("aggressive") === "1";
 
     const twoYearsAgo = new Date();
     twoYearsAgo.setFullYear(twoYearsAgo.getFullYear() - 2);
@@ -61,17 +58,6 @@ export async function POST(req: Request) {
         const isKnownClass = myCourseNames.has(
           (ev.summary ?? "").trim().toLowerCase()
         );
-
-        if (aggressive) {
-          if (hasMarker || (hasWeeklyRRule && isKnownClass) || hasWeeklyRRule) {
-            candidates++;
-            await calendar.events
-              .delete({ calendarId: "primary", eventId: ev.id })
-              .catch(() => {});
-            deleted++;
-          }
-          continue;
-        }
 
         if (!hasMarker && !isKnownClass) continue;
         if (!hasWeeklyRRule && !hasMarker) continue;

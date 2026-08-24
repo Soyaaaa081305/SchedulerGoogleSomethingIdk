@@ -50,16 +50,12 @@ export default function SettingsSection({
   connected,
   cleaning,
   onCleanup,
-  onCleanupAggressive,
-  onCleanupAll,
 }: {
   settings: SettingsDTO | null;
   onSettingsChange: (s: SettingsDTO) => void;
   connected: boolean;
   cleaning: boolean;
   onCleanup: () => void;
-  onCleanupAggressive: () => void;
-  onCleanupAll: () => void;
 }) {
   const [subscribed, setSubscribed] = useState<boolean | null>(null);
   const [busy, setBusy] = useState(false);
@@ -68,8 +64,6 @@ export default function SettingsSection({
   const [error, setError] = useState<string | null>(null);
   const [notice, setNotice] = useState<string | null>(null);
   const [confirmingCleanup, setConfirmingCleanup] = useState(false);
-  const [confirmingAggressive, setConfirmingAggressive] = useState(false);
-  const [confirmingNuclear, setConfirmingNuclear] = useState(false);
   const { toast } = useToast();
 
   useEffect(() => {
@@ -381,7 +375,7 @@ export default function SettingsSection({
         )}
 
         {connected && (
-          <div className="space-y-5 pt-5">
+          <div className="pt-5">
             <div className="flex flex-wrap items-center justify-between gap-3">
               <div>
                 <p className="text-sm font-medium text-zinc-900">Calendar cleanup</p>
@@ -396,39 +390,6 @@ export default function SettingsSection({
               ) : (
                 <Button variant="secondary" onClick={() => setConfirmingCleanup(true)}>
                   Clean up
-                </Button>
-              )}
-            </div>
-            <div className="flex flex-wrap items-center justify-between gap-3 border-t border-zinc-100 pt-5">
-              <div>
-                <p className="text-sm font-medium text-zinc-900">Remove all old classes</p>
-                <p className="text-sm text-zinc-500">
-                  Deletes every weekly recurring event that looks like a class
-                  (weekday, daytime) — even old ones from before you started
-                  using Scheduler. Use this if you still see stale events.
-                </p>
-              </div>
-              {cleaning ? (
-                <Spinner label="Cleaning…" />
-              ) : (
-                <Button variant="danger" onClick={() => setConfirmingAggressive(true)}>
-                  Remove all old classes
-                </Button>
-              )}
-            </div>
-            <div className="flex flex-wrap items-center justify-between gap-3 border-t border-zinc-100 pt-5">
-              <div>
-                <p className="text-sm font-medium text-zinc-900">Delete everything from calendar</p>
-                <p className="text-sm text-zinc-500">
-                  Removes every event on your Google Calendar except your
-                  currently synced classes. Your schedule here is not affected.
-                </p>
-              </div>
-              {cleaning ? (
-                <Spinner label="Deleting…" />
-              ) : (
-                <Button variant="danger" onClick={() => setConfirmingNuclear(true)}>
-                  Delete everything
                 </Button>
               )}
             </div>
@@ -447,34 +408,6 @@ export default function SettingsSection({
           onCleanup();
         }}
         onCancel={() => setConfirmingCleanup(false)}
-      />
-
-      <ConfirmModal
-        open={confirmingAggressive}
-        title="Remove all old class events?"
-        body="This will delete every weekly recurring event during daytime hours on your calendar — even events from before you started using Scheduler. Your current synced classes will be kept. This can't be undone."
-        confirmLabel="Remove all old classes"
-        danger
-        busy={cleaning}
-        onConfirm={() => {
-          setConfirmingAggressive(false);
-          onCleanupAggressive();
-        }}
-        onCancel={() => setConfirmingAggressive(false)}
-      />
-
-      <ConfirmModal
-        open={confirmingNuclear}
-        title="Delete everything from Google Calendar?"
-        body="This will remove every event on your Google Calendar — including personal events, meetings, anything. Only your currently synced Scheduler classes will remain. This can't be undone."
-        confirmLabel="Delete everything"
-        danger
-        busy={cleaning}
-        onConfirm={() => {
-          setConfirmingNuclear(false);
-          onCleanupAll();
-        }}
-        onCancel={() => setConfirmingNuclear(false)}
       />
 
       {notice && (
