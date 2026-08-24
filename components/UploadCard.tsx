@@ -10,6 +10,7 @@ import {
 import type { ScheduleDTO, SettingsDTO } from "@/lib/types";
 import { mergeDuplicateRows } from "@/lib/scheduleUtils";
 import type { ParsedCourse } from "@/lib/gemini";
+import { parseICS } from "@/lib/icsImport";
 import { useToast } from "@/components/ToastProvider";
 import UploadWizard from "@/components/UploadWizard";
 import type { Row } from "@/components/CourseRowEditor";
@@ -128,16 +129,42 @@ export default function UploadCard({
     if (inputRef.current) inputRef.current.value = "";
   };
 
+  const isIcsFile = (file: File) =>
+    file.name.toLowerCase().endsWith(".ics") || file.type === "text/calendar" || file.type === "application/octet-stream";
+
   const handleFile = useCallback(
     async (file: File) => {
       setError(null);
       setNotice(null);
-      if (!file.type.startsWith("image/")) {
-        setError("That file is not an image. Upload a photo or screenshot of your schedule.");
+      if (file.size > 5 * 1024 * 1024) {
+        setError("File is too large. Please use a file smaller than 5 MB.");
         return;
       }
-      if (file.size > 5 * 1024 * 1024) {
-        setError("Image is too large. Please use a file smaller than 5 MB.");
+
+      // ICS import — parse locally, no AI needed
+      if (isIcsFile(file)) {
+        setLoading(true);
+        try {
+          const text = await file.text();
+          const courses = parseICS(text);
+          if (courses.length === 0) {
+            setError("No classes found in that .ics file. Check the file and try again.");
+          } else {
+            const merged = mergeDuplicateRows(courses);
+            setRows(merged.map((c, i) => ({ ...c, id: `new-${i}-${Date.now()}`, selected: true })));
+            setNotice(`Found ${merged.length} course${merged.length > 1 ? "s" : ""} in .ics file. Review them, then sync.`);
+            toast("info", "Classes from .ics — review and sync.");
+          }
+        } catch (err) {
+          setError(err instanceof Error ? err.message : "Could not read .ics file");
+        } finally {
+          setLoading(false);
+        }
+        return;
+      }
+
+      if (!file.type.startsWith("image/")) {
+        setError("That file is not an image or .ics. Upload a photo of your schedule or an .ics file.");
         return;
       }
       if (previewUrl && previewUrl.startsWith("blob:")) URL.revokeObjectURL(previewUrl);
@@ -192,7 +219,7 @@ export default function UploadCard({
       <div
         role="button"
         tabIndex={0}
-        aria-label="Upload schedule image"
+        aria-label="Upload schedule image or .ics file"
         onClick={() => inputRef.current?.click()}
         onKeyDown={(e) => {
           if (e.key === "Enter" || e.key === " ") {
@@ -244,11 +271,10 @@ export default function UploadCard({
         ) : (
           <>
             <p className="text-sm font-medium text-zinc-800">
-              Drop a photo of your class schedule here
+              Drop a photo or .ics file here
             </p>
             <p className="text-xs text-zinc-500">
-              or click to browse, or just paste (Ctrl/Cmd + V) — a photo or
-              screenshot of your timetable works best
+              or click to browse, or paste (Ctrl/Cmd+V) — photo, screenshot, or exported .ics
             </p>
             <div className="mt-2 flex flex-col items-center gap-1">
               {/* eslint-disable-next-line @next/next/no-img-element */}
@@ -264,7 +290,7 @@ export default function UploadCard({
         <input
           ref={inputRef}
           type="file"
-          accept="image/*"
+          accept="image/*,.ics,text/calendar"
           className="hidden"
           onChange={(e) => {
             const file = e.target.files?.[0];

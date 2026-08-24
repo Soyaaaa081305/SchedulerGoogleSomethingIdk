@@ -64,6 +64,8 @@ export default function SettingsSection({
   const [error, setError] = useState<string | null>(null);
   const [notice, setNotice] = useState<string | null>(null);
   const [confirmingCleanup, setConfirmingCleanup] = useState(false);
+  const [confirmingDeleteData, setConfirmingDeleteData] = useState(false);
+  const [deletingData, setDeletingData] = useState(false);
   const [icalUrl, setIcalUrl] = useState<string | null>(null);
   const [icalCopied, setIcalCopied] = useState(false);
   const { toast } = useToast();
@@ -219,6 +221,40 @@ export default function SettingsSection({
       toast("error", msg);
     } finally {
       setSyncState((s) => ({ ...s, busy: false }));
+    }
+  };
+
+  const exportData = async () => {
+    try {
+      const res = await fetch("/api/user/export");
+      const data = await res.json();
+      if (!res.ok) throw new Error((data as { error?: string })?.error ?? "Export failed");
+      const blob = new Blob([JSON.stringify(data, null, 2)], { type: "application/json" });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = `scheduler-export-${new Date().toISOString().slice(0, 10)}.json`;
+      a.click();
+      URL.revokeObjectURL(url);
+      toast("success", "Your data has been exported.");
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Export failed");
+    }
+  };
+
+  const deleteData = async () => {
+    setDeletingData(true);
+    try {
+      const res = await fetch("/api/user/delete", { method: "DELETE" });
+      const data = (await res.json().catch(() => null)) as { error?: string } | null;
+      if (!res.ok) throw new Error(data?.error ?? "Delete failed");
+      setConfirmingDeleteData(false);
+      toast("success", "All your schedule data has been deleted.");
+      setTimeout(() => window.location.reload(), 1000);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Delete failed");
+    } finally {
+      setDeletingData(false);
     }
   };
 
@@ -437,6 +473,21 @@ export default function SettingsSection({
             </div>
           </div>
         )}
+
+        <div className="pt-5">
+          <p className="text-sm font-medium text-zinc-900">Data & privacy</p>
+          <p className="mt-0.5 text-sm text-zinc-500">
+            Export your data as JSON or delete all your schedule data. Deleting removes your classes, settings, and push subscriptions but keeps your account.
+          </p>
+          <div className="mt-3 flex flex-wrap gap-2">
+            <Button variant="secondary" onClick={() => void exportData()}>
+              Export my data
+            </Button>
+            <Button variant="danger" onClick={() => setConfirmingDeleteData(true)} disabled={deletingData}>
+              Delete my data
+            </Button>
+          </div>
+        </div>
       </div>
 
       <ConfirmModal
@@ -450,6 +501,17 @@ export default function SettingsSection({
           onCleanup();
         }}
         onCancel={() => setConfirmingCleanup(false)}
+      />
+
+      <ConfirmModal
+        open={confirmingDeleteData}
+        title="Delete all your data?"
+        body="This will permanently delete all your classes, settings, and push subscriptions. Your Google Calendar events will remain — remove them manually if needed. This can't be undone."
+        confirmLabel="Delete my data"
+        danger
+        busy={deletingData}
+        onConfirm={() => void deleteData()}
+        onCancel={() => setConfirmingDeleteData(false)}
       />
 
       {notice && (
