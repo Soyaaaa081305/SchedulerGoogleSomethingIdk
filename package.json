@@ -13,9 +13,9 @@
     "test:e2e": "playwright test",
     "postinstall": "prisma generate --schema prisma/schema.prisma",
     "prisma:local": "prisma db push --schema prisma/schema.prisma && prisma generate --schema prisma/schema.prisma",
-    "prisma:prod": "prisma migrate deploy --schema prisma/schema.postgres.prisma && prisma generate --schema prisma/schema.postgres.prisma",
+    "prisma:prod": "prisma generate --schema prisma/schema.postgres.prisma",
     "prisma:migrate": "prisma migrate deploy --schema prisma/schema.postgres.prisma",
-    "vercel-build": "prisma migrate deploy --schema prisma/schema.postgres.prisma && prisma generate --schema prisma/schema.postgres.prisma && next build"
+    "vercel-build": "prisma generate --schema prisma/schema.postgres.prisma && next build"
   },
   "dependencies": {
     "@auth/prisma-adapter": "^2.11.3",
