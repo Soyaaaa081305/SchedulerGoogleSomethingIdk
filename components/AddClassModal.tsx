@@ -6,6 +6,7 @@ import { useToast } from "@/components/ToastProvider";
 import type { Day } from "@/lib/days";
 import type { ScheduleDTO } from "@/lib/types";
 import type { ParsedCourse } from "@/lib/gemini";
+import { saveSchedule } from "@/lib/scheduleClient";
 
 export default function AddClassModal({
   open,
@@ -14,7 +15,7 @@ export default function AddClassModal({
 }: {
   open: boolean;
   onClose: () => void;
-  onSaved: (s: ScheduleDTO, googleError?: string) => void;
+  onSaved: (s: ScheduleDTO) => void;
 }) {
   const { toast } = useToast();
   const [courseName, setCourseName] = useState("");
@@ -53,26 +54,9 @@ export default function AddClassModal({
         endTime,
         room: room.trim() || null,
       };
-      const res = await fetch("/api/schedules", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(payload),
-      });
-      const data = (await res.json().catch(() => null)) as {
-        schedule?: ScheduleDTO;
-        googleError?: string;
-        error?: string;
-      } | null;
-      if (!res.ok || !data?.schedule) {
-        throw new Error(data?.error ?? "Could not save the class");
-      }
-      onSaved(data.schedule, data.googleError);
-      toast(
-        "success",
-        data.googleError
-          ? `"${data.schedule.courseName}" saved locally. ${data.googleError}`
-          : `"${data.schedule.courseName}" added to your schedule and Google Calendar.`
-      );
+      const schedule = await saveSchedule(payload);
+      onSaved(schedule);
+      toast("success", `"${schedule.courseName}" saved. Calendar sync is running in the background.`);
       reset();
       onClose();
     } catch (err) {
@@ -83,7 +67,7 @@ export default function AddClassModal({
   };
 
   return (
-    <Modal open={open} onClose={busy ? () => {} : onClose}>
+    <Modal open={open} onClose={onClose} ariaLabel="Add a class" closeDisabled={busy}>
       <div className="p-5 sm:p-6">
         <h2 className="text-lg font-black text-zinc-900">Add a class</h2>
         <p className="mt-1 text-sm text-zinc-600">

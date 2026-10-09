@@ -27,7 +27,13 @@ function NavLink({ href, label }: { href: string; label: string }) {
   );
 }
 
-export default function Header({ user }: { user: UserInfo }) {
+export default function Header({
+  user,
+  onOpenCommandPalette,
+}: {
+  user: UserInfo;
+  onOpenCommandPalette?: () => void;
+}) {
   return (
     <header className="sticky top-0 z-10 border-b border-zinc-200 bg-white/95 backdrop-blur">
       <div className="h-1 bg-gradient-to-r from-[#c8102e] via-[#a50d26] to-[#8a0a1e]" aria-hidden="true" />
@@ -52,6 +58,21 @@ export default function Header({ user }: { user: UserInfo }) {
         <nav className="flex items-center gap-1" aria-label="Main navigation">
           <NavLink href="/" label="Schedule" />
           <NavLink href="/settings" label="Settings" />
+          {onOpenCommandPalette && (
+            <button
+              type="button"
+              aria-label="Open command palette"
+              title="Search classes and settings"
+              onClick={onOpenCommandPalette}
+              className="flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-sm font-medium text-zinc-600 transition-colors hover:bg-zinc-100 hover:text-zinc-900"
+            >
+              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" strokeWidth={2} stroke="currentColor" aria-hidden="true">
+                <circle cx="11" cy="11" r="7" />
+                <path strokeLinecap="round" d="m20 20-4-4" />
+              </svg>
+              <span className="hidden sm:inline">Search</span>
+            </button>
+          )}
         </nav>
 
         <div className="flex items-center gap-3">

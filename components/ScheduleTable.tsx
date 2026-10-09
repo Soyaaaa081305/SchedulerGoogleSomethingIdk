@@ -9,10 +9,35 @@ import { schedulesToICS } from "@/lib/ics";
 import type { ScheduleDTO } from "@/lib/types";
 import { formatTime12h, weekdayInTz, type Day } from "@/lib/days";
 
+function SyncStatus({ schedule, syncing }: { schedule: ScheduleDTO; syncing: boolean }) {
+  const status = syncing ? "syncing" : schedule.synced ? "synced" : "unsynced";
+  const color = syncing
+    ? "bg-blue-100 text-blue-700"
+    : schedule.synced
+      ? "bg-green-100 text-green-700"
+      : "bg-amber-100 text-amber-700";
+
+  return (
+    <span
+      className={`flex items-center gap-1 rounded-full px-2 py-0.5 text-xs font-medium ${color}`}
+      title={syncing ? "Syncing to Google Calendar" : schedule.synced ? "Synced to Google Calendar" : "Not synced; retry in Settings"}
+      aria-live="polite"
+    >
+      {schedule.synced && !syncing ? (
+        <svg width="10" height="10" viewBox="0 0 24 24" fill="none" strokeWidth={3.5} stroke="currentColor" aria-hidden="true">
+          <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
+        </svg>
+      ) : null}
+      {status}
+    </span>
+  );
+}
+
 export default function ScheduleTable({
   schedules,
   onChange,
   onAdded,
+  syncingIds = new Set<string>(),
   timezone,
   semesterEnd,
 }: {
@@ -20,6 +45,7 @@ export default function ScheduleTable({
   onChange: (schedules: ScheduleDTO[]) => void;
   /** Called when a class is added manually — lets the parent update connection state. */
   onAdded?: (s: ScheduleDTO, googleError?: string) => void;
+  syncingIds?: ReadonlySet<string>;
   timezone: string;
   semesterEnd: string | null;
 }) {
@@ -284,19 +310,7 @@ export default function ScheduleTable({
                 </div>
                 <div className="flex flex-wrap items-center gap-3">
                   <DayBadges days={s.daysOfWeek} />
-                  <span
-                    className={`flex items-center gap-1 rounded-full px-2 py-0.5 text-xs font-medium ${
-                      s.synced ? "bg-green-100 text-green-700" : "bg-amber-100 text-amber-700"
-                    }`}
-                    title={s.synced ? "Synced to Google Calendar" : "Not synced"}
-                  >
-                    {s.synced ? (
-                      <svg width="10" height="10" viewBox="0 0 24 24" fill="none" strokeWidth={3.5} stroke="currentColor" aria-hidden="true">
-                        <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
-                      </svg>
-                    ) : null}
-                    {s.synced ? "synced" : "unsynced"}
-                  </span>
+                  <SyncStatus schedule={s} syncing={syncingIds.has(s.id)} />
                   <Button variant="secondary" onClick={() => startEdit(s)} aria-label={`Edit ${s.courseName}`}>
                     Edit
                   </Button>

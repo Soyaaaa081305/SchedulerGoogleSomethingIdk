@@ -14,6 +14,7 @@ import { useToast } from "@/components/ToastProvider";
 import { ensurePushSubscribed } from "@/lib/pushClient";
 import { TERM_OPTIONS, termEndFor } from "@/lib/term";
 import type { SettingsDTO } from "@/lib/types";
+import { syncScheduleBacklog } from "@/lib/scheduleClient";
 
 function formatReminderTime(time: string): string {
   try {
@@ -35,14 +36,14 @@ function endOfTermLabel(iso: string | null): string {
   });
 }
 
-const timeZoneOptions: string[] | null = (() => {
+function getTimeZoneOptions(): string[] | null {
   try {
     const intlWithList = Intl as unknown as { supportedValuesOf?: (key: string) => string[] };
     return intlWithList.supportedValuesOf ? intlWithList.supportedValuesOf("timeZone") : null;
   } catch {
     return null;
   }
-})();
+}
 
 export default function SettingsSection({
   settings,
@@ -58,6 +59,7 @@ export default function SettingsSection({
   onCleanup: () => void;
 }) {
   const [subscribed, setSubscribed] = useState<boolean | null>(null);
+  const [timeZoneOptions, setTimeZoneOptions] = useState<string[] | null>(null);
   const [busy, setBusy] = useState(false);
   const [savingTerm, setSavingTerm] = useState(false);
   const [syncState, setSyncState] = useState<{ busy: boolean; result: string | null; error: string | null }>({ busy: false, result: null, error: null });
@@ -69,6 +71,16 @@ export default function SettingsSection({
   const [icalUrl, setIcalUrl] = useState<string | null>(null);
   const [icalCopied, setIcalCopied] = useState(false);
   const { toast } = useToast();
+
+  useEffect(() => {
+    const options = getTimeZoneOptions();
+    if (options) {
+      // Server and browser ICU builds can name historical zones differently.
+      // Load the browser's list after hydration to keep the initial markup stable.
+      // eslint-disable-next-line react-hooks/set-state-in-effect
+      setTimeZoneOptions(options);
+    }
+  }, []);
 
   useEffect(() => {
     let cancelled = false;
@@ -197,21 +209,18 @@ export default function SettingsSection({
     setError(null);
     setNotice(null);
     try {
-      const res = await fetch("/api/schedules/sync", { method: "POST" });
-      const data = (await res.json().catch(() => null)) as {
-        created?: number;
-        repaired?: number;
-        failed?: number;
-        firstError?: string;
-      } | null;
-      if (!res.ok) throw new Error(data?.firstError ?? "Could not sync");
-      const count = (data?.created ?? 0) + (data?.repaired ?? 0);
-      if (count > 0) {
+      const data = await syncScheduleBacklog();
+      const count = data.created + data.repaired;
+      if (data.failed > 0) {
+        const msg = `${count} class${count === 1 ? "" : "es"} synced; ${data.failed} remain unsynced. ${data.firstError ?? "Retry in a moment."}`;
+        setSyncState({ busy: false, result: null, error: msg });
+        toast("info", msg);
+      } else if (count > 0) {
         const msg = `Synced ${count} class${count > 1 ? "es" : ""} to Google Calendar.`;
         setSyncState({ busy: false, result: msg, error: null });
         toast("success", msg);
       } else {
-        const msg = data?.firstError ?? "All classes are already synced, or Google Calendar is not connected.";
+        const msg = data.firstError ?? "All classes are already synced, or Google Calendar is not connected.";
         setSyncState({ busy: false, result: null, error: msg });
         toast("info", msg);
       }

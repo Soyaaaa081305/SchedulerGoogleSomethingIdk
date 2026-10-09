@@ -22,7 +22,7 @@ export default function ConfirmModal({
   onCancel: () => void;
 }) {
   return (
-    <Modal open={open} onClose={onCancel}>
+    <Modal open={open} onClose={onCancel} ariaLabel={title} closeDisabled={busy}>
       <div className="p-5 sm:p-6">
         <h2 className="text-lg font-black text-zinc-900" id="confirm-title">{title}</h2>
         <p className="mt-2 text-sm leading-relaxed text-zinc-600">{body}</p>

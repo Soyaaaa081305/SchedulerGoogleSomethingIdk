@@ -15,6 +15,15 @@ interface SyncRow {
   googleEventId?: string | null;
 }
 
+interface SyncResult {
+  scheduleId: string;
+  status: "created" | "repaired" | "failed";
+  googleEventId: string | null;
+  error?: string;
+}
+
+const SYNC_CONCURRENCY = 3;
+
 export async function POST() {
   try {
     const userId = await requireUser();
@@ -29,14 +38,11 @@ export async function POST() {
         where: { userId, googleEventId: { not: null }, lastSyncedAt: null },
       }),
     ]);
+    const backlog = [...unsynced, ...stale];
 
-    let created = 0;
-    let repaired = 0;
-    let failed = 0;
-    let firstError: string | null = null;
-
-    const syncRow = async (row: SyncRow) => {
+    const syncRow = async (row: SyncRow): Promise<SyncResult> => {
       const input = {
+        scheduleId: row.id,
         courseName: row.courseName,
         daysOfWeek: row.daysOfWeek.split(",").filter(Boolean) as Day[],
         startTime: row.startTime,
@@ -47,37 +53,69 @@ export async function POST() {
       };
       try {
         if (row.googleEventId) {
-          await updateWeeklyEvent(userId, row.googleEventId, input);
+          const updated = await updateWeeklyEvent(userId, row.googleEventId, input);
+          if (!updated) {
+            return {
+              scheduleId: row.id,
+              status: "failed",
+              googleEventId: row.googleEventId,
+              error: "Google Calendar is not connected.",
+            };
+          }
           await prisma.schedule.update({
             where: { id: row.id },
             data: { lastSyncedAt: new Date() },
           });
-          repaired++;
+          return { scheduleId: row.id, status: "repaired", googleEventId: row.googleEventId };
         } else {
           const event = await createWeeklyEvent(userId, input);
           if (!event) {
-            failed++;
-            firstError ??= "Google Calendar is not connected.";
-            return;
+            return {
+              scheduleId: row.id,
+              status: "failed",
+              googleEventId: null,
+              error: "Google Calendar is not connected.",
+            };
           }
           await prisma.schedule.update({
             where: { id: row.id },
             data: { googleEventId: event.id, lastSyncedAt: new Date() },
           });
-          created++;
+          return { scheduleId: row.id, status: "created", googleEventId: event.id };
         }
       } catch (err) {
-        failed++;
-        firstError ??=
-          err instanceof ApiError ? err.message : "Sync failed for one or more classes.";
-        console.error("[sync] failed for", row.courseName, err);
+        const error =
+          err instanceof ApiError
+            ? err.message
+            : "Calendar sync failed for this class. Try again in Settings.";
+        console.error("[sync] class failed", { scheduleId: row.id, error });
+        return {
+          scheduleId: row.id,
+          status: "failed",
+          googleEventId: row.googleEventId ?? null,
+          error,
+        };
       }
     };
 
-    for (const s of unsynced) await syncRow(s);
-    for (const s of stale) await syncRow(s);
+    const results: SyncResult[] = new Array(backlog.length);
+    let nextIndex = 0;
+    const worker = async () => {
+      while (true) {
+        const index = nextIndex++;
+        if (index >= backlog.length) return;
+        results[index] = await syncRow(backlog[index]);
+      }
+    };
+    const workerCount = Math.min(SYNC_CONCURRENCY, backlog.length);
+    await Promise.all(Array.from({ length: workerCount }, () => worker()));
 
-    return NextResponse.json({ ok: true, created, repaired, failed, firstError });
+    const created = results.filter((result) => result.status === "created").length;
+    const repaired = results.filter((result) => result.status === "repaired").length;
+    const failed = results.filter((result) => result.status === "failed").length;
+    const firstError = results.find((result) => result.error)?.error ?? null;
+
+    return NextResponse.json({ ok: true, created, repaired, failed, firstError, results });
   } catch (err) {
     return handleError(err);
   }

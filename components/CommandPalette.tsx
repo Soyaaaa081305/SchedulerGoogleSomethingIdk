@@ -1,25 +1,41 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import type { ScheduleDTO } from "@/lib/types";
+import { hasOpenDialog, Modal } from "@/components/ui";
 
-export default function CommandPalette({ schedules }: { schedules: ScheduleDTO[] }) {
-  const [open, setOpen] = useState(false);
+export default function CommandPalette({
+  schedules,
+  open,
+  onOpenChange,
+}: {
+  schedules: ScheduleDTO[];
+  open: boolean;
+  onOpenChange: (open: boolean) => void;
+}) {
   const [q, setQ] = useState("");
   const router = useRouter();
+
+  const close = useCallback(() => {
+    onOpenChange(false);
+    setQ("");
+  }, [onOpenChange]);
 
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
       if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === "k") {
         e.preventDefault();
-        setOpen((v) => !v);
+        if (open) {
+          close();
+        } else if (!hasOpenDialog()) {
+          onOpenChange(true);
+        }
       }
-      if (e.key === "Escape") setOpen(false);
     };
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
-  }, []);
+  }, [open, close, onOpenChange]);
 
   const filtered = useMemo(() => {
     const query = q.trim().toLowerCase();
@@ -30,26 +46,28 @@ export default function CommandPalette({ schedules }: { schedules: ScheduleDTO[]
   if (!open) return null;
 
   return (
-    <div className="fixed inset-0 z-[9998] flex items-start justify-center bg-zinc-900/40 p-4 pt-[20vh] backdrop-blur-sm" onClick={() => setOpen(false)}>
-      <div
-        className="w-full max-w-lg overflow-hidden rounded-2xl border border-zinc-200 bg-white shadow-xl"
-        onClick={(e) => e.stopPropagation()}
-        role="dialog"
-        aria-modal="true"
-        aria-label="Command palette"
-      >
+    <Modal
+      open={open}
+      onClose={close}
+      size="md"
+      ariaLabel="Command palette"
+      showCloseButton={false}
+      scrollableContent={false}
+    >
+      <div className="overflow-hidden rounded-2xl border border-zinc-200 bg-white shadow-xl">
         <input
-          autoFocus
+          data-dialog-autofocus
           value={q}
           onChange={(e) => setQ(e.target.value)}
           placeholder="Search classes, or try “settings”…"
+          aria-label="Search classes and settings"
           className="w-full border-b border-zinc-100 bg-white px-4 py-3 text-sm text-zinc-900 placeholder:text-zinc-400 focus:outline-none"
         />
         <div className="max-h-64 overflow-y-auto p-2">
           <button
             type="button"
             onClick={() => {
-              setOpen(false);
+              close();
               router.push("/settings");
             }}
             className="flex w-full items-center gap-3 rounded-lg px-3 py-2 text-left text-sm hover:bg-zinc-50"
@@ -68,6 +86,6 @@ export default function CommandPalette({ schedules }: { schedules: ScheduleDTO[]
         </div>
         <div className="border-t border-zinc-100 bg-zinc-50 px-3 py-2 text-xs text-zinc-400">Press ⌘K to close · Esc to dismiss</div>
       </div>
-    </div>
+    </Modal>
   );
 }

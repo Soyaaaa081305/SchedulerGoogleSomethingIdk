@@ -13,26 +13,7 @@ import {
   isDuplicateOfExisting,
 } from "@/lib/scheduleUtils";
 import { CourseRowEditor, type Row } from "@/components/CourseRowEditor";
-
-async function saveSchedule(row: ParsedCourse): Promise<{
-  schedule: ScheduleDTO;
-  googleError?: string;
-}> {
-  const res = await fetch("/api/schedules", {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify(row),
-  });
-  const data = (await res.json().catch(() => null)) as {
-    schedule?: ScheduleDTO;
-    googleError?: string;
-    error?: string;
-  } | null;
-  if (!res.ok) {
-    throw new Error(data?.error ?? "Could not add to Google Calendar");
-  }
-  return { schedule: data!.schedule!, googleError: data?.googleError };
-}
+import { saveSchedules } from "@/lib/scheduleClient";
 
 const STEPS = ["Review", "Term length", "Reminder", "Confirm"];
 
@@ -41,25 +22,25 @@ export default function UploadWizard({
   existing,
   onClose,
   onSaved,
+  onSyncRequested,
   settings,
   onSettingsChange,
-  onCleared,
 }: {
   rows: Row[];
   /** The user's already-saved classes — used for duplicate + overlap checks. */
   existing: ScheduleDTO[];
   onClose: () => void;
-  onSaved: (s: ScheduleDTO, googleError?: string) => void;
+  onSaved: (schedules: ScheduleDTO[], deferCalendarSync?: boolean) => void;
+  onSyncRequested: (schedules: ScheduleDTO[]) => void;
   settings: SettingsDTO | null;
   onSettingsChange: (s: SettingsDTO) => void;
-  onCleared: () => void;
 }) {
   const { toast } = useToast();
   const [step, setStep] = useState(0);
   const [rowsState, setRowsState] = useState<Row[]>(rows);
   const [semesterEnd, setSemesterEnd] = useState<string | null>(settings?.semesterEnd ?? null);
   const [reminderOn, setReminderOn] = useState(settings?.reminderEnabled ?? true);
-  const [syncing, setSyncing] = useState(false);
+  const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [reminderError, setReminderError] = useState<string | null>(null);
   const [reminderNotice, setReminderNotice] = useState<string | null>(null);
@@ -89,19 +70,10 @@ export default function UploadWizard({
   );
   const hasConflicts = rowConflicts.length > 0 || existingConflicts.length > 0;
 
-  const toggleReminder = async (on: boolean) => {
+  const toggleReminder = (on: boolean) => {
     setReminderOn(on);
     setReminderError(null);
-    setReminderNotice(null);
-    if (!on) return;
-    try {
-      await ensurePushSubscribed();
-      setReminderNotice(
-        "Notifications are enabled — you'll get a nightly push with tomorrow's classes."
-      );
-    } catch (err) {
-      setReminderError(err instanceof Error ? err.message : "Could not enable notifications");
-    }
+    setReminderNotice(on ? "We'll enable notifications after saving your classes." : null);
   };
 
   const patchSettings = async (body: Record<string, unknown>) => {
@@ -115,51 +87,45 @@ export default function UploadWizard({
     onSettingsChange(data.settings);
   };
 
-  const sync = async () => {
+  const save = async () => {
     if (selected.length === 0) return;
-    setSyncing(true);
+    setSaving(true);
     setError(null);
     try {
-      await patchSettings({ semesterEnd, reminderEnabled: reminderOn });
-      if (reminderOn) {
-        try {
-          // Reuses the browser subscription (or creates one) and saves it
-          // server-side so the nightly cron can find it.
-          await ensurePushSubscribed();
-        } catch {
-          setReminderError(
-            "Classes will sync, but notifications are blocked — allow them later in Settings."
-          );
-        }
-      }
-      let googleError: string | null = null;
-      for (const row of selected) {
-        const result = await saveSchedule({
+      const saved = await saveSchedules(selected.map((row): ParsedCourse => ({
           courseName: row.courseName,
           daysOfWeek: row.daysOfWeek,
           startTime: row.startTime,
           endTime: row.endTime,
           room: row.room,
-        });
-        onSaved(result.schedule, result.googleError);
-        if (result.googleError && !googleError) googleError = result.googleError;
-      }
-      if (googleError) {
-        toast("info", `${googleError} Your classes are saved below.`);
-      } else {
-        toast(
-          "success",
-          `Added ${selected.length} course${selected.length > 1 ? "s" : ""} to your schedule and Google Calendar.`
-        );
-      }
-      onCleared();
+        })));
+      onSaved(saved, true);
+      toast(
+        "success",
+        `Saved ${saved.length} course${saved.length > 1 ? "s" : ""}. Calendar sync will start in the background.`
+      );
       onClose();
+      void patchSettings({ semesterEnd, reminderEnabled: reminderOn })
+        .then(() => {
+          // Calendar events use the persisted term end, so start sync only
+          // after this settings write settles. The saved classes are already
+          // visible and the wizard is closed while this runs.
+          onSyncRequested(saved);
+          if (reminderOn) {
+            void ensurePushSubscribed().catch(() => {
+              toast("info", "Classes are saved. Finish notification setup later in Settings.");
+            });
+          }
+        })
+        .catch(() => {
+          toast("error", "Classes are saved, but term or reminder settings could not be saved. Retry in Settings.");
+          onSyncRequested(saved);
+        });
     } catch (err) {
-      const message = err instanceof Error ? err.message : "Could not sync your schedule";
+      const message = err instanceof Error ? err.message : "Could not save your schedule";
       setError(message);
       toast("error", message);
-    } finally {
-      setSyncing(false);
+      setSaving(false);
     }
   };
 
@@ -169,7 +135,14 @@ export default function UploadWizard({
       : "";
 
   return (
-    <Modal open onClose={syncing ? () => {} : onClose} size="lg">
+    <Modal
+      open
+      onClose={onClose}
+      size="lg"
+      ariaLabel="Review imported schedule"
+      closeDisabled={saving}
+      scrollableContent={false}
+    >
       <div className="flex min-h-0 flex-1 flex-col">
         <div className="shrink-0 px-4 pt-5 sm:px-8 sm:pt-6">
           <p className="text-xs font-semibold uppercase tracking-wide text-zinc-400">
@@ -302,7 +275,7 @@ export default function UploadWizard({
                   — change it later in Settings.
                 </p>
               </div>
-              <Toggle checked={reminderOn} onChange={(v) => void toggleReminder(v)} />
+              <Toggle checked={reminderOn} onChange={toggleReminder} />
             </div>
             {reminderNotice && (
               <div className="mt-3">
@@ -381,32 +354,32 @@ export default function UploadWizard({
           </div>
         )}
 
-        {syncing && (
+        {saving && (
           <div className="mt-4">
-            <Spinner label="Syncing to Google Calendar…" />
+            <Spinner label="Saving classes…" />
           </div>
         )}
         </div>
 
         <div className="shrink-0 border-t border-zinc-100 px-4 py-3 sm:px-8 sm:py-4">
           <div className="flex items-center justify-between">
-            <Button variant="ghost" onClick={() => setStep((s) => Math.max(0, s - 1))} disabled={step === 0 || syncing}>
+            <Button variant="ghost" onClick={() => setStep((s) => Math.max(0, s - 1))} disabled={step === 0 || saving}>
               Back
             </Button>
             <Button
               onClick={() => {
                 if (step === STEPS.length - 1) {
-                  void sync();
+                  void save();
                 } else {
                   setStep((s) => s + 1);
                 }
               }}
-              disabled={syncing || (step === 0 && (selected.length === 0 || hasConflicts))}
+              disabled={saving || (step === 0 && (selected.length === 0 || hasConflicts))}
             >
               {step === STEPS.length - 1
-                ? syncing
-                  ? "Syncing…"
-                  : `Sync ${selected.length} to Google Calendar`
+                ? saving
+                  ? "Saving…"
+                  : `Save ${selected.length} ${selected.length === 1 ? "class" : "classes"}`
                 : "Next"}
             </Button>
           </div>

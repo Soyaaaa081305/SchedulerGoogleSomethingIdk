@@ -4,6 +4,7 @@ import { requireUser, handleError, ApiError } from "@/lib/api";
 import { rateLimit } from "@/lib/rateLimit";
 
 const MAX_BYTES = 5 * 1024 * 1024;
+export const maxDuration = 60;
 
 export async function POST(req: Request) {
   try {
@@ -30,9 +31,15 @@ export async function POST(req: Request) {
 
     let courses;
     try {
-      courses = await extractScheduleFromImage(file.type, base64);
+      courses = await extractScheduleFromImage(file.type, base64, req.signal);
     } catch (err) {
       console.error("[upload] Gemini failed:", err);
+      if (err instanceof Error && /timed out/i.test(err.message)) {
+        throw new ApiError(504, "Reading your schedule took too long. Try a smaller or clearer image, then retry.");
+      }
+      if (err instanceof Error && /cancelled/i.test(err.message)) {
+        throw new ApiError(499, "Schedule reading was cancelled.");
+      }
       throw new ApiError(502, "Could not read your schedule. Try a clearer photo of the timetable.");
     }
 

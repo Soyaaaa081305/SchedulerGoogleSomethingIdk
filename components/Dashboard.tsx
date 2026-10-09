@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import Header, { type UserInfo } from "@/components/Header";
 import ConnectBanner from "@/components/ConnectBanner";
 import UploadCard from "@/components/UploadCard";
@@ -10,6 +10,8 @@ import CommandPalette from "@/components/CommandPalette";
 import { describeNextOccurrence, nextOccurrenceInfo } from "@/lib/scheduleUtils";
 import { weekdayInTz } from "@/lib/days";
 import type { ScheduleDTO, SettingsDTO } from "@/lib/types";
+import { loadSchedules, syncScheduleBacklog } from "@/lib/scheduleClient";
+import { useToast } from "@/components/ToastProvider";
 
 export interface TodaySummary {
   classesToday: string[];
@@ -36,9 +38,14 @@ export default function Dashboard({ user, initial }: { user: UserInfo; initial: 
   const [settings, setSettings] = useState<SettingsDTO | null>(initial.settings);
   const [connected, setConnected] = useState(initial.connected);
   const [needsReconnect, setNeedsReconnect] = useState(initial.needsReconnect);
+  const [syncingIds, setSyncingIds] = useState<Set<string>>(() => new Set());
+  const [commandPaletteOpen, setCommandPaletteOpen] = useState(false);
   const [mounted, setMounted] = useState(false);
   // Ticks every 30s so the "next class" countdown stays honest.
   const [, setTick] = useState(0);
+  const pendingSyncIds = useRef(new Set<string>());
+  const syncRunning = useRef(false);
+  const { toast } = useToast();
   const onboarding = useOnboarding(initial.schedules.length === 0);
 
   useEffect(() => {
@@ -56,15 +63,66 @@ export default function Dashboard({ user, initial }: { user: UserInfo; initial: 
     [user.name, user.email]
   );
 
-  const onSaved = (s: ScheduleDTO, googleError?: string) => {
-    setSchedules((prev) => [s, ...prev.filter((x) => x.id !== s.id)]);
-    // Only treat Google as connected when the class actually synced; a local
-    // save with a Google error must not flip the banner to "connected".
-    if (!googleError) {
-      setConnected(true);
-      setNeedsReconnect(false);
+  const syncPendingSchedules = useCallback(async () => {
+    if (syncRunning.current) return;
+    syncRunning.current = true;
+    try {
+      while (pendingSyncIds.current.size > 0) {
+        const batchIds = [...pendingSyncIds.current];
+        pendingSyncIds.current.clear();
+        try {
+          const summary = await syncScheduleBacklog();
+          if (summary.created + summary.repaired > 0) {
+            setConnected(true);
+            setNeedsReconnect(false);
+          }
+          const latest = await loadSchedules().catch(() => null);
+          if (latest) setSchedules(latest);
+          setSyncingIds((current) => {
+            const next = new Set(current);
+            for (const id of batchIds) next.delete(id);
+            for (const result of summary.results) next.delete(result.scheduleId);
+            return next;
+          });
+          if (summary.failed > 0) {
+            toast(
+              "info",
+              `${summary.failed} class${summary.failed === 1 ? " is" : "es are"} saved but not synced. Retry in Settings with Sync now.`
+            );
+          }
+        } catch {
+          setSyncingIds((current) => {
+            const next = new Set(current);
+            for (const id of batchIds) next.delete(id);
+            return next;
+          });
+          toast("error", "Your classes are saved. Calendar sync is pending; retry in Settings with Sync now.");
+        }
+      }
+    } finally {
+      syncRunning.current = false;
     }
-  };
+  }, [toast]);
+
+  const startCalendarSync = useCallback((saved: ScheduleDTO[]) => {
+    if (saved.length === 0) return;
+    const savedIds = new Set(saved.map((schedule) => schedule.id));
+    setSyncingIds((current) => new Set([...current, ...savedIds]));
+    for (const schedule of saved) pendingSyncIds.current.add(schedule.id);
+    void syncPendingSchedules();
+  }, [syncPendingSchedules]);
+
+  const onSaved = useCallback((saved: ScheduleDTO[], deferCalendarSync = false) => {
+    if (saved.length === 0) return;
+    const savedIds = new Set(saved.map((schedule) => schedule.id));
+    setSchedules((current) => [
+      ...saved,
+      ...current.filter((schedule) => !savedIds.has(schedule.id)),
+    ]);
+    if (!deferCalendarSync) startCalendarSync(saved);
+  }, [startCalendarSync]);
+
+  const onSavedOne = useCallback((schedule: ScheduleDTO) => onSaved([schedule]), [onSaved]);
 
   // Derived client-side so adding/deleting classes updates the hero instantly.
   const weekday = mounted ? weekdayInTz(timezone) : null;
@@ -78,8 +136,11 @@ export default function Dashboard({ user, initial }: { user: UserInfo; initial: 
   const nextInfo = mounted ? nextOccurrenceInfo(schedules, timezone) : null;
 
   return (
-    <div className="flex min-h-screen flex-col bg-[#f6f6f7]">
-      <Header user={user} />
+    <div
+      className="flex min-h-screen flex-col bg-[#f6f6f7]"
+      data-dashboard-ready={mounted ? "true" : "false"}
+    >
+      <Header user={user} onOpenCommandPalette={() => setCommandPaletteOpen(true)} />
       <ConnectBanner connected={connected} needsReconnect={needsReconnect} />
 
       <main className="mx-auto w-full max-w-5xl flex-1 space-y-6 px-4 py-6 pb-16">
@@ -119,6 +180,7 @@ export default function Dashboard({ user, initial }: { user: UserInfo; initial: 
 
         <UploadCard
           onSaved={onSaved}
+          onSyncRequested={startCalendarSync}
           existing={schedules}
           settings={settings}
           onSettingsChange={setSettings}
@@ -126,7 +188,8 @@ export default function Dashboard({ user, initial }: { user: UserInfo; initial: 
         <ScheduleTable
           schedules={schedules}
           onChange={setSchedules}
-          onAdded={onSaved}
+          onAdded={onSavedOne}
+          syncingIds={syncingIds}
           timezone={timezone}
           semesterEnd={settings?.semesterEnd ?? null}
         />
@@ -137,7 +200,11 @@ export default function Dashboard({ user, initial }: { user: UserInfo; initial: 
         </footer>
       </main>
 
-      <CommandPalette schedules={schedules} />
+      <CommandPalette
+        schedules={schedules}
+        open={commandPaletteOpen}
+        onOpenChange={setCommandPaletteOpen}
+      />
       <OnboardingModal open={onboarding.open} onClose={onboarding.close} />
     </div>
   );

@@ -41,11 +41,11 @@ select:focus-visible {
 @keyframes modal-pop {
   from {
     opacity: 0;
-    transform: translateY(12px) scale(0.98);
+    transform: scale(0.98);
   }
   to {
     opacity: 1;
-    transform: translateY(0) scale(1);
+    transform: scale(1);
   }
 }
 
@@ -64,6 +64,36 @@ select:focus-visible {
 
 .fade-in {
   animation: fade-in 0.18s ease-out;
+}
+
+.dialog-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 10000;
+  display: flex;
+  min-height: 100vh;
+  min-height: 100dvh;
+  align-items: center;
+  justify-content: center;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  padding: max(1rem, env(safe-area-inset-top))
+    max(1rem, env(safe-area-inset-right))
+    max(1rem, env(safe-area-inset-bottom))
+    max(1rem, env(safe-area-inset-left));
+  -webkit-overflow-scrolling: touch;
+}
+
+.dialog-panel {
+  max-height: calc(100vh - 2rem);
+  max-height: calc(
+    100dvh - max(
+      2rem,
+      env(safe-area-inset-top) + env(safe-area-inset-bottom) + 2rem
+    )
+  );
+  min-height: 0;
+  flex: 0 1 auto;
 }
 
 @media (prefers-reduced-motion: reduce) {

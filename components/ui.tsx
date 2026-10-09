@@ -1,5 +1,6 @@
 import type { ReactNode, ButtonHTMLAttributes } from "react";
-import { useEffect, useRef } from "react";
+import { createPortal } from "react-dom";
+import { useEffect, useRef, useState } from "react";
 import { DAYS, type Day } from "@/lib/days";
 
 export const BRAND = {
@@ -159,30 +160,142 @@ export function Toggle({
 const FOCUSABLE_SELECTOR =
   'a[href], button:not([disabled]), textarea:not([disabled]), input:not([disabled]):not([type="hidden"]), select:not([disabled]), [tabindex]:not([tabindex="-1"])';
 
+const openDialogs: symbol[] = [];
+let lastPointerTarget: HTMLElement | null = null;
+let bodyLock: {
+  scrollY: number;
+  bodyOverflow: string;
+  bodyPosition: string;
+  bodyTop: string;
+  bodyWidth: string;
+  documentOverflow: string;
+} | null = null;
+
+function lockPageScroll() {
+  if (bodyLock || typeof document === "undefined") return;
+  const body = document.body;
+  bodyLock = {
+    scrollY: window.scrollY,
+    bodyOverflow: body.style.overflow,
+    bodyPosition: body.style.position,
+    bodyTop: body.style.top,
+    bodyWidth: body.style.width,
+    documentOverflow: document.documentElement.style.overflow,
+  };
+  document.documentElement.style.overflow = "hidden";
+  body.style.overflow = "hidden";
+  body.style.position = "fixed";
+  body.style.top = `-${bodyLock.scrollY}px`;
+  body.style.width = "100%";
+}
+
+function unlockPageScroll() {
+  if (!bodyLock || typeof document === "undefined") return;
+  const previous = bodyLock;
+  bodyLock = null;
+  const body = document.body;
+  document.documentElement.style.overflow = previous.documentOverflow;
+  body.style.overflow = previous.bodyOverflow;
+  body.style.position = previous.bodyPosition;
+  body.style.top = previous.bodyTop;
+  body.style.width = previous.bodyWidth;
+  window.scrollTo(0, previous.scrollY);
+}
+
+function registerDialog(id: symbol) {
+  const wasEmpty = openDialogs.length === 0;
+  openDialogs.push(id);
+  if (wasEmpty) lockPageScroll();
+}
+
+function unregisterDialog(id: symbol) {
+  const index = openDialogs.lastIndexOf(id);
+  if (index >= 0) openDialogs.splice(index, 1);
+  if (openDialogs.length === 0) unlockPageScroll();
+}
+
+function isTopDialog(id: symbol) {
+  return openDialogs.at(-1) === id;
+}
+
+export function hasOpenDialog() {
+  return openDialogs.length > 0;
+}
+
 export function Modal({
   open,
   onClose,
   children,
   size = "md",
+  ariaLabel,
+  closeDisabled = false,
+  showCloseButton = true,
+  closeOnBackdrop = true,
+  scrollableContent = true,
 }: {
   open: boolean;
   onClose: () => void;
   children: ReactNode;
   size?: "md" | "lg";
+  ariaLabel: string;
+  closeDisabled?: boolean;
+  showCloseButton?: boolean;
+  closeOnBackdrop?: boolean;
+  scrollableContent?: boolean;
 }) {
   const panelRef = useRef<HTMLDivElement>(null);
+  const idRef = useRef<symbol>(Symbol("dialog"));
+  const onCloseRef = useRef(onClose);
+  const closeDisabledRef = useRef(closeDisabled);
+  const [mounted, setMounted] = useState(false);
 
   useEffect(() => {
-    if (!open) return;
+    onCloseRef.current = onClose;
+    closeDisabledRef.current = closeDisabled;
+  }, [onClose, closeDisabled]);
 
-    const previouslyFocused = document.activeElement as HTMLElement | null;
+  useEffect(() => {
+    // Portals need the browser body, so render after hydration.
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    setMounted(true);
+  }, []);
+
+  useEffect(() => {
+    const rememberPointerTarget = (event: PointerEvent) => {
+      const target = event.target;
+      lastPointerTarget =
+        target instanceof Element
+          ? target.closest<HTMLElement>(FOCUSABLE_SELECTOR)
+          : null;
+    };
+    document.addEventListener("pointerdown", rememberPointerTarget, true);
+    return () => document.removeEventListener("pointerdown", rememberPointerTarget, true);
+  }, []);
+
+  useEffect(() => {
+    if (!open || !mounted) return;
+
+    const activeElement = document.activeElement as HTMLElement | null;
+    const previouslyFocused =
+      activeElement && activeElement !== document.body ? activeElement : lastPointerTarget;
     const panel = panelRef.current;
-    panel?.focus();
+    const dialogId = idRef.current;
+    registerDialog(dialogId);
+
+    const focusable = panel
+      ? Array.from(panel.querySelectorAll<HTMLElement>(FOCUSABLE_SELECTOR)).filter(
+          (element) => !element.hasAttribute("data-dialog-close")
+        )
+      : [];
+    const initialFocus = panel?.querySelector<HTMLElement>("[data-dialog-autofocus]") ?? focusable[0];
+    (initialFocus ?? panel)?.focus({ preventScroll: true });
 
     const onKey = (e: KeyboardEvent) => {
+      if (!isTopDialog(dialogId)) return;
       if (e.key === "Escape") {
+        e.preventDefault();
         e.stopPropagation();
-        onClose();
+        if (!closeDisabledRef.current) onCloseRef.current();
         return;
       }
       if (e.key !== "Tab" || !panel) return;
@@ -209,46 +322,67 @@ export function Modal({
     window.addEventListener("keydown", onKey);
     return () => {
       window.removeEventListener("keydown", onKey);
-      previouslyFocused?.focus?.();
+      unregisterDialog(dialogId);
+      if (previouslyFocused?.isConnected) previouslyFocused.focus({ preventScroll: true });
+      lastPointerTarget = null;
     };
-  }, [open, onClose]);
+  }, [open, mounted]);
 
-  useEffect(() => {
-    if (!open) return;
-    document.body.style.overflow = "hidden";
-    return () => {
-      document.body.style.overflow = "";
-    };
-  }, [open]);
+  if (!open || !mounted) return null;
 
-  if (!open) return null;
-
-  return (
+  return createPortal(
     <div
-      onClick={onClose}
-      className="fade-in fixed inset-0 z-[9999] flex items-center justify-center bg-zinc-900/55 p-4 backdrop-blur-sm"
+      onClick={(event) => {
+        if (
+          closeOnBackdrop &&
+          !closeDisabledRef.current &&
+          event.target === event.currentTarget &&
+          isTopDialog(idRef.current)
+        ) {
+          onCloseRef.current();
+        }
+      }}
+      className="dialog-overlay fade-in bg-zinc-900/55 backdrop-blur-sm"
+      data-dialog-overlay
     >
       <div
         ref={panelRef}
         role="dialog"
         aria-modal="true"
-        aria-label="Dialog"
+        aria-label={ariaLabel}
         tabIndex={-1}
-        onClick={(e) => e.stopPropagation()}
-        className={`modal-pop relative flex max-h-[88vh] w-full flex-col overflow-hidden rounded-2xl bg-white shadow-[0_25px_60px_-12px_rgba(0,0,0,0.35)] outline-none ${size === "lg" ? "max-w-3xl" : "max-w-lg"}`}
+        onClick={(event) => event.stopPropagation()}
+        className={`dialog-panel modal-pop relative flex w-full flex-col overflow-hidden rounded-2xl bg-white shadow-[0_25px_60px_-12px_rgba(0,0,0,0.35)] outline-none ${size === "lg" ? "max-w-3xl" : "max-w-lg"}`}
+        data-dialog-panel
       >
-        <button
-          type="button"
-          aria-label="Close"
-          onClick={onClose}
-          className="absolute right-3 top-3 z-10 flex h-8 w-8 items-center justify-center rounded-full border border-zinc-200 bg-white/90 text-zinc-500 transition-colors hover:bg-[#fdeeef] hover:text-[#c8102e]"
+        {showCloseButton && (
+          <button
+            type="button"
+            aria-label="Close dialog"
+            data-dialog-close
+            onClick={() => {
+              if (!closeDisabledRef.current) onCloseRef.current();
+            }}
+            disabled={closeDisabled}
+            className="absolute right-3 top-3 z-10 flex h-8 w-8 items-center justify-center rounded-full border border-zinc-200 bg-white/90 text-zinc-500 transition-colors hover:bg-[#fdeeef] hover:text-[#c8102e] disabled:cursor-not-allowed disabled:opacity-50"
+          >
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" strokeWidth={2.5} stroke="currentColor" aria-hidden="true">
+              <path strokeLinecap="round" d="M6 6l12 12M18 6L6 18" />
+            </svg>
+          </button>
+        )}
+        <div
+          className={
+            scrollableContent
+              ? "flex min-h-0 flex-1 flex-col overflow-y-auto overscroll-contain"
+              : "flex min-h-0 flex-1 flex-col overflow-hidden"
+          }
+          data-dialog-content
         >
-          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" strokeWidth={2.5} stroke="currentColor" aria-hidden="true">
-            <path strokeLinecap="round" d="M6 6l12 12M18 6L6 18" />
-          </svg>
-        </button>
-        {children}
+          {children}
+        </div>
       </div>
-    </div>
+    </div>,
+    document.body
   );
 }

@@ -18,8 +18,6 @@ const MODEL_CHAIN = Array.from(
   )
 );
 
-const REQUEST_TIMEOUT_MS = 45_000;
-
 const SCHEDULE_PROMPT = `You are an assistant that extracts class schedules from images of timetables or course schedules.
 
 Look carefully at the image and extract EVERY course/class you can see. For each course return:
@@ -48,8 +46,13 @@ function scheduleModel(model: string) {
   });
 }
 
-async function generateJson<T>(model: string, parts: (string | Part)[]): Promise<T> {
-  const result = await scheduleModel(model).generateContent(parts);
+async function generateJson<T>(
+  model: string,
+  parts: (string | Part)[],
+  timeout: number,
+  signal?: AbortSignal
+): Promise<T> {
+  const result = await scheduleModel(model).generateContent(parts, { timeout, signal });
   const text = result.response.text();
   try {
     return JSON.parse(text) as T;
@@ -58,13 +61,8 @@ async function generateJson<T>(model: string, parts: (string | Part)[]): Promise
   }
 }
 
-function withTimeout<T>(promise: Promise<T>, ms: number): Promise<T> {
-  let timer: ReturnType<typeof setTimeout> | undefined;
-  const timeout = new Promise<never>((_, reject) => {
-    timer = setTimeout(() => reject(new Error("AI request timed out")), ms);
-  });
-  return Promise.race([promise, timeout]).finally(() => clearTimeout(timer));
-}
+const EXTRACTION_BUDGET_MS = 50_000;
+const MODEL_ATTEMPT_MAX_MS = 20_000;
 
 /** Normalizes and de-duplicates the raw AI response into ParsedCourse[]. */
 export function parseCoursesResponse(raw: { courses?: Array<Record<string, unknown>> } | null | undefined): ParsedCourse[] {
@@ -102,7 +100,11 @@ export function parseCoursesResponse(raw: { courses?: Array<Record<string, unkno
   return courses;
 }
 
-export async function extractScheduleFromImage(mimeType: string, base64Data: string): Promise<ParsedCourse[]> {
+export async function extractScheduleFromImage(
+  mimeType: string,
+  base64Data: string,
+  signal?: AbortSignal
+): Promise<ParsedCourse[]> {
   const key = process.env.GEMINI_API_KEY;
   if (!key) {
     console.error("[gemini] GEMINI_API_KEY is not set");
@@ -114,10 +116,19 @@ export async function extractScheduleFromImage(mimeType: string, base64Data: str
     { text: SCHEDULE_PROMPT },
   ];
 
+  const deadline = Date.now() + EXTRACTION_BUDGET_MS;
   let lastError: unknown = null;
   for (const model of MODEL_CHAIN) {
+    if (signal?.aborted) throw new Error("Schedule reading was cancelled.");
+    const remaining = deadline - Date.now();
+    if (remaining <= 0) break;
     try {
-      const raw = await withTimeout(generateJson<{ courses?: Array<Record<string, unknown>> }>(model, parts), REQUEST_TIMEOUT_MS);
+      const raw = await generateJson<{ courses?: Array<Record<string, unknown>> }>(
+        model,
+        parts,
+        Math.min(remaining, MODEL_ATTEMPT_MAX_MS),
+        signal
+      );
       const parsed = parseCoursesResponse(raw);
       if (parsed.length > 0) return parsed;
       // Empty result: try the next model once before giving up.
@@ -125,9 +136,14 @@ export async function extractScheduleFromImage(mimeType: string, base64Data: str
     } catch (err) {
       lastError = err;
       console.warn(`[gemini] model ${model} failed:`, err instanceof Error ? err.message : err);
+      if (signal?.aborted || Date.now() >= deadline) break;
     }
   }
 
+  if (signal?.aborted) throw new Error("Schedule reading was cancelled.");
+  if (Date.now() >= deadline) {
+    throw new Error("Schedule reading timed out. Try a smaller or clearer image.");
+  }
   if (lastError instanceof Error && /No courses detected/.test(lastError.message)) {
     return [];
   }

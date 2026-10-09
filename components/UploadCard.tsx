@@ -15,8 +15,8 @@ import { useToast } from "@/components/ToastProvider";
 import UploadWizard from "@/components/UploadWizard";
 import type { Row } from "@/components/CourseRowEditor";
 
-const PREVIEW_KEY = "scheduler-upload-preview";
 const MAX_DIMENSION = 1600;
+const IMAGE_PREPARATION_TIMEOUT_MS = 1_000;
 
 /**
  * Downscales large photos client-side so phone snapshots fit under the 5 MB
@@ -25,6 +25,9 @@ const MAX_DIMENSION = 1600;
  */
 async function compressImage(file: File): Promise<File> {
   try {
+    // Tiny images already fit comfortably under the upload limit; avoid
+    // decoding them on the main thread just to learn they need no resizing.
+    if (file.size <= 256_000) return file;
     if (typeof createImageBitmap === "undefined" || file.type === "image/gif") return file;
     const bitmap = await createImageBitmap(file, { imageOrientation: "from-image" });
     const scale = Math.min(1, MAX_DIMENSION / Math.max(bitmap.width, bitmap.height));
@@ -51,49 +54,43 @@ async function compressImage(file: File): Promise<File> {
   }
 }
 
-async function uploadImage(file: File): Promise<ParsedCourse[]> {
+async function prepareImage(file: File): Promise<File> {
+  if (file.size <= 256_000) return file;
+  let timeoutId: ReturnType<typeof setTimeout> | undefined;
+  try {
+    return await Promise.race([
+      compressImage(file),
+      new Promise<File>((resolve) => {
+        timeoutId = setTimeout(() => resolve(file), IMAGE_PREPARATION_TIMEOUT_MS);
+      }),
+    ]);
+  } finally {
+    if (timeoutId) clearTimeout(timeoutId);
+  }
+}
+
+async function uploadImage(file: File, signal: AbortSignal): Promise<ParsedCourse[]> {
   const form = new FormData();
   form.append("image", file);
-  const res = await fetch("/api/upload", { method: "POST", body: form });
+  const res = await fetch("/api/upload", { method: "POST", body: form, signal });
   if (!res.ok) {
     const data = (await res.json().catch(() => null)) as { error?: string } | null;
     throw new Error(data?.error ?? "Upload failed");
   }
-  const data = (await res.json()) as { courses: ParsedCourse[] };
+  const data = (await res.json()) as { courses?: ParsedCourse[] };
+  if (!Array.isArray(data.courses)) throw new Error("The schedule reader returned an invalid response.");
   return data.courses;
-}
-
-function readSavedPreview(): string | null {
-  try {
-    return localStorage.getItem(PREVIEW_KEY);
-  } catch {
-    return null;
-  }
-}
-
-function savePreview(dataUrl: string) {
-  try {
-    localStorage.setItem(PREVIEW_KEY, dataUrl);
-  } catch {
-    // private mode or full — ignore
-  }
-}
-
-function clearSavedPreview() {
-  try {
-    localStorage.removeItem(PREVIEW_KEY);
-  } catch {
-    // ignore
-  }
 }
 
 export default function UploadCard({
   onSaved,
+  onSyncRequested,
   existing,
   settings,
   onSettingsChange,
 }: {
-  onSaved: (s: ScheduleDTO, googleError?: string) => void;
+  onSaved: (schedules: ScheduleDTO[], deferCalendarSync?: boolean) => void;
+  onSyncRequested: (schedules: ScheduleDTO[]) => void;
   /** Saved classes — used to flag duplicates in the review wizard. */
   existing: ScheduleDTO[];
   settings: SettingsDTO | null;
@@ -101,18 +98,31 @@ export default function UploadCard({
 }) {
   const { toast } = useToast();
   const inputRef = useRef<HTMLInputElement>(null);
+  const uploadIdRef = useRef(0);
+  const uploadControllerRef = useRef<AbortController | null>(null);
+  const previewUrlRef = useRef<string | null>(null);
   const [dragging, setDragging] = useState(false);
   const [loading, setLoading] = useState(false);
+  const [loadingLabel, setLoadingLabel] = useState("Preparing your image…");
   const [rows, setRows] = useState<Row[]>([]);
-  const [previewUrl, setPreviewUrl] = useState<string | null>(() => readSavedPreview());
+  const [previewUrl, setPreviewUrl] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [notice, setNotice] = useState<string | null>(null);
 
   useEffect(() => {
     return () => {
-      if (previewUrl && previewUrl.startsWith("blob:")) URL.revokeObjectURL(previewUrl);
+      uploadIdRef.current += 1;
+      uploadControllerRef.current?.abort("unmounted");
+      if (previewUrlRef.current) URL.revokeObjectURL(previewUrlRef.current);
     };
-  }, [previewUrl]);
+  }, []);
+
+  const replacePreview = useCallback((nextUrl: string | null) => {
+    const previous = previewUrlRef.current;
+    previewUrlRef.current = nextUrl;
+    if (previous) URL.revokeObjectURL(previous);
+    setPreviewUrl(nextUrl);
+  }, []);
 
   const clearRows = () => {
     setRows([]);
@@ -122,10 +132,12 @@ export default function UploadCard({
   };
 
   const clearAll = () => {
+    uploadIdRef.current += 1;
+    uploadControllerRef.current?.abort("cancelled");
+    uploadControllerRef.current = null;
     clearRows();
-    if (previewUrl && previewUrl.startsWith("blob:")) URL.revokeObjectURL(previewUrl);
-    setPreviewUrl(null);
-    clearSavedPreview();
+    replacePreview(null);
+    setLoadingLabel("Preparing your image…");
     if (inputRef.current) inputRef.current.value = "";
   };
 
@@ -134,18 +146,27 @@ export default function UploadCard({
 
   const handleFile = useCallback(
     async (file: File) => {
+      const requestId = ++uploadIdRef.current;
+      uploadControllerRef.current?.abort("replaced");
+      const controller = new AbortController();
+      uploadControllerRef.current = controller;
       setError(null);
       setNotice(null);
+      setRows([]);
       if (file.size > 5 * 1024 * 1024) {
+        setLoading(false);
         setError("File is too large. Please use a file smaller than 5 MB.");
         return;
       }
 
       // ICS import — parse locally, no AI needed
       if (isIcsFile(file)) {
+        replacePreview(null);
         setLoading(true);
+        setLoadingLabel("Reading calendar file…");
         try {
           const text = await file.text();
+          if (requestId !== uploadIdRef.current) return;
           const courses = parseICS(text);
           if (courses.length === 0) {
             setError("No classes found in that .ics file. Check the file and try again.");
@@ -156,41 +177,35 @@ export default function UploadCard({
             toast("info", "Classes from .ics — review and sync.");
           }
         } catch (err) {
-          setError(err instanceof Error ? err.message : "Could not read .ics file");
+          if (requestId === uploadIdRef.current) {
+            setError(err instanceof Error ? err.message : "Could not read .ics file");
+          }
         } finally {
-          setLoading(false);
+          if (requestId === uploadIdRef.current) setLoading(false);
         }
         return;
       }
 
       if (!file.type.startsWith("image/")) {
+        setLoading(false);
         setError("That file is not an image or .ics. Upload a photo of your schedule or an .ics file.");
         return;
       }
-      if (previewUrl && previewUrl.startsWith("blob:")) URL.revokeObjectURL(previewUrl);
-
-      const blobUrl = URL.createObjectURL(file);
-      setPreviewUrl(blobUrl);
-
-      try {
-        const reader = new FileReader();
-        const dataUrl = await new Promise<string>((resolve, reject) => {
-          reader.onload = () => resolve(reader.result as string);
-          reader.onerror = reject;
-          reader.readAsDataURL(file);
-        });
-        savePreview(dataUrl);
-      } catch {
-        // non-critical — ignore
-      }
+      replacePreview(URL.createObjectURL(file));
 
       setLoading(true);
+      setLoadingLabel("Preparing your image…");
+      let timeoutId: ReturnType<typeof setTimeout> | undefined;
       try {
-        const toUpload = await compressImage(file);
+        const toUpload = await prepareImage(file);
+        if (requestId !== uploadIdRef.current) return;
         if (toUpload !== file) {
-          setPreviewUrl(URL.createObjectURL(toUpload));
+          replacePreview(URL.createObjectURL(toUpload));
         }
-        const courses = await uploadImage(toUpload);
+        setLoadingLabel("Reading your schedule…");
+        timeoutId = setTimeout(() => controller.abort("timeout"), 55_000);
+        const courses = await uploadImage(toUpload, controller.signal);
+        if (requestId !== uploadIdRef.current) return;
         if (courses.length === 0) {
           setError("No courses were detected in that image. Try a clearer photo of your timetable.");
         } else {
@@ -206,12 +221,25 @@ export default function UploadCard({
           toast("info", "Classes detected — review and sync in a few steps.");
         }
       } catch (err) {
-        setError(err instanceof Error ? err.message : "Upload failed");
+        if (requestId === uploadIdRef.current) {
+          if (controller.signal.reason === "timeout") {
+            setError("Reading your schedule took too long. Try a smaller or clearer image, then retry.");
+          } else if (controller.signal.aborted) {
+            return;
+          } else {
+            setError(err instanceof Error ? err.message : "Upload failed");
+          }
+        }
       } finally {
-        setLoading(false);
+        if (timeoutId) clearTimeout(timeoutId);
+        if (requestId === uploadIdRef.current) {
+          setLoading(false);
+          setLoadingLabel("Preparing your image…");
+          if (uploadControllerRef.current === controller) uploadControllerRef.current = null;
+        }
       }
     },
-    [previewUrl, toast]
+    [replacePreview, toast]
   );
 
   return (
@@ -302,7 +330,7 @@ export default function UploadCard({
 
       {loading && (
         <div className="mt-4 flex justify-center">
-          <Spinner label="Reading your schedule…" />
+          <Spinner label={loadingLabel} />
         </div>
       )}
 
@@ -340,9 +368,9 @@ export default function UploadCard({
           existing={existing}
           onClose={clearRows}
           onSaved={onSaved}
+          onSyncRequested={onSyncRequested}
           settings={settings}
           onSettingsChange={onSettingsChange}
-          onCleared={clearRows}
         />
       )}
     </Card>
